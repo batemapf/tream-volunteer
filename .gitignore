@@ -12,3 +12,6 @@ node_modules/
 crash.log
 *.tfvars
 !*.example.tfvars
+__pycache__/
+*.pyc
+infra/app/api.zip
