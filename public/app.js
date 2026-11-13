@@ -203,7 +203,7 @@ function render() {
               : s.total === 0
                 ? "Be the first to join"
                 : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
-        return `<tr><td class="number">${Number(j.id) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>December ${+j.date.slice(-2)}</small></td><td class="job">${j.name}<small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
+        return `<tr><td class="number">${Number(j.id) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>December ${+j.date.slice(-2)}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${j.name}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
           s.total
             ? `<button data-open="${j.id}">${visible
                 .slice(0, 3)
@@ -412,6 +412,8 @@ $("#reset").onclick = () => {
 render();
 
 if (apiBase) {
+  document.querySelector(".demo-label").textContent =
+    "Development · shared test data";
   jobs = [];
   seed = [];
   render();

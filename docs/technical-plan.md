@@ -1,6 +1,6 @@
 # Proposed AWS implementation
 
-Planning only. No AWS resources have been created and no production behavior is implemented.
+Target production design. A first AWS development slice is now deployed; see development-deployment.md for verified functionality and remaining work. Production launch is not complete.
 
 Primary AWS region: us-east-2. See [deployment access](aws-deployment.md) for GitHub OIDC/IAM setup and [retention](data-retention.md) for the 27-month ceiling.
 

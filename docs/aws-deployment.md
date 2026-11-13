@@ -1,6 +1,6 @@
 # AWS deployment access
 
-Region: **us-east-2 (Ohio)**. The AWS account ID and final sender identity are still needed. No deployment or AWS provisioning has been performed.
+Region: **us-east-2 (Ohio)**. The AWS account ID and final sender identity are still needed. The first development stack is now deployed; see development-deployment.md for endpoints and verification.
 
 ## Recommended: GitHub OIDC, no long-lived access keys
 

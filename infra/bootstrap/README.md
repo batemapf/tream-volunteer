@@ -1,6 +1,6 @@
 # Terraform deployment IAM bootstrap
 
-These are the proposed initial provisioning policies for direct Terraform deployments. They replace the earlier CloudFormation/service-role proposal. No policy is deployed, no live IAM validation has run, and no Terraform resources exist yet.
+These are the proposed initial provisioning policies for direct Terraform deployments. They replace the earlier CloudFormation/service-role proposal. The configured deployment role has now successfully provisioned the first development stack; see docs/development-deployment.md. The templates here retain ACCOUNT_ID placeholders for setup reference.
 
 ## Scope and tradeoff
 

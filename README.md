@@ -22,7 +22,7 @@ Open http://localhost:8000.
 - Optionally display first name and last initial; names are private by default.
 - Create and cancel demo signups stored in the current browser.
 
-This is a prototype with fictional volunteers. There is no shared database, server-side capacity enforcement, authentication or email delivery. Submitted email addresses are not retained or sent anywhere. Use sample details.
+Local preview remains a browser-only prototype with fictional volunteers. The new AWS development deployment uses a shared DynamoDB backend and server-side capacity enforcement, stores submitted contact details privately, and still has email disabled. Use sample details in either environment. See [development deployment](docs/development-deployment.md) for implemented behavior and remaining launch work.
 
 ## Project notes
 
@@ -30,6 +30,8 @@ See [feature notes](docs/feature-notes.md) and [open decisions](docs/open-decisi
 
 Public feedback prototype: https://brent-tream-planner.batemapf.chatgpt.site
 
-The public prototype is deployed separately through Sites. This repository does not yet have automated hosting or deployment configured.
+The public prototype is deployed separately through Sites. The separate AWS development environment is deployed by GitHub Actions and Terraform; it does not update the Sites prototype.
 
 AWS deployment setup and IAM requirements: [deployment access](docs/aws-deployment.md). Data lifecycle: [retention policy](docs/data-retention.md).
+
+AWS development board (shared test data; email disabled): https://dy2majdy4ufxo.cloudfront.net
