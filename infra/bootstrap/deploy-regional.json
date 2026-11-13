@@ -1,0 +1,43 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProvisionRegionalApplicationServices",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:*",
+        "dynamodb:*",
+        "apigateway:*",
+        "cognito-idp:*",
+        "sqs:*",
+        "ses:*",
+        "events:*",
+        "scheduler:*",
+        "logs:*",
+        "cloudwatch:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-2"
+        }
+      }
+    },
+    {
+      "Sid": "ManageCertificates",
+      "Effect": "Allow",
+      "Action": [
+        "acm:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            "us-east-1",
+            "us-east-2"
+          ]
+        }
+      }
+    }
+  ]
+}

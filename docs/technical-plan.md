@@ -11,7 +11,7 @@ Primary AWS region: us-east-2. See [deployment access](aws-deployment.md) for Gi
 - DynamoDB on-demand for schedule, bookings, private contacts, participant records and notification outbox. Use separate public projection records; never return private objects and remove fields in the browser.
 - Cognito user pool for organizer username/password login, managed password hashes, sessions and resets. No public organizer self-registration. Authorize organizer API operations server-side.
 - SES for email; SQS + Lambda for controlled sending/retries, delivery-event handling and dead-letter review. EventBridge Scheduler for reminders. CloudWatch for errors and operational metrics.
-- Infrastructure as code, with separate development/production configuration. Tool choice is an implementation detail still to select.
+- Terraform infrastructure as code, with separate development/production configuration, private S3 state, native S3 locking and GitHub OIDC deployment. See infra/bootstrap for initial provisioning policies.
 
 ## Flexible domain model
 

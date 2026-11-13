@@ -3,3 +3,12 @@
 .env.*
 !.env.example
 node_modules/
+
+# Terraform local state and sensitive plans
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.example.tfvars

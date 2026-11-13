@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ManageProjectBuckets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::tream-ACCOUNT_ID-*",
+        "arn:aws:s3:::tream-ACCOUNT_ID-*/*"
+      ]
+    },
+    {
+      "Sid": "ManageWebDelivery",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
