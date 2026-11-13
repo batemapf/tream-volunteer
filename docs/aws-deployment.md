@@ -24,7 +24,7 @@ An AWS account administrator performs the bootstrap once:
     "Condition": {
       "StringEquals": {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": "repo:batemapf/tream-volunteer:environment:production"
+        "token.actions.githubusercontent.com:sub": "repo:batemapf@7645362/tream-volunteer@1456028757:environment:production"
       }
     }
   }]
@@ -85,3 +85,14 @@ The configured role ARN passed the format check. AWS rejected OIDC role assumpti
 This job uses `environment: production`, so the trust policy subject must be `repo:batemapf/tream-volunteer:environment:production`, not a branch subject such as `repo:batemapf/tream-volunteer:ref:refs/heads/main`. Confirm the provider ARN uses the deployment role's account, the audience is `sts.amazonaws.com`, and the trust action is `sts:AssumeRoleWithWebIdentity`. The error alone does not identify which trust condition failed; an organizational deny is also possible.
 
 After fixing trust, rerun AWS deployment preflight from the Actions tab. Do not add application permissions to fix a trust-policy failure.
+
+
+## Confirmed OIDC subject mismatch
+
+Diagnostic run https://github.com/batemapf/tream-volunteer/actions/runs/43354314097 decoded only non-secret identity claims. GitHub actually issued:
+
+```
+repo:batemapf@7645362/tream-volunteer@1456028757:environment:production
+```
+
+The configured role and provider account match (620144980370), issuer and audience are correct, and the environment is production. The supplied trust policy's older name-only subject does not match this observed ID-bearing subject. Update the trust policy StringEquals `sub` to the exact value above, preserving the audience, principal, action and effect. Earlier troubleshooting suggestions are historical; this mismatch is now directly observed. Do not broaden the subject to a wildcard.
