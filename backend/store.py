@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from decimal import Decimal
 import boto3
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
@@ -30,6 +31,59 @@ class DynamoStore:
             TableName=self.table, Key=self.encode({"pk": key}), ConsistentRead=True
         )
         return self.decode(result["Item"]) if "Item" in result else None
+
+    def get_many(self, keys):
+        unique = list(dict.fromkeys(keys))
+        found = {}
+        for start in range(0, len(unique), 100):
+            pending = {
+                self.table: {
+                    "Keys": [
+                        self.encode({"pk": key}) for key in unique[start : start + 100]
+                    ],
+                    "ConsistentRead": True,
+                }
+            }
+            for attempt in range(6):
+                result = self.client.batch_get_item(RequestItems=pending)
+                for raw in result.get("Responses", {}).get(self.table, []):
+                    item = self.decode(raw)
+                    found[item["pk"]] = item
+                pending = result.get("UnprocessedKeys", {})
+                if not pending:
+                    break
+                time.sleep(0.02 * 2**attempt)
+            if pending:
+                raise RuntimeError("Incomplete database read")
+        return [found.get(key) for key in keys]
+
+    def list_drafts(self, now):
+        result = self.client.query(
+            TableName=self.table,
+            IndexName="recordType-createdAt",
+            KeyConditionExpression="#type = :type",
+            FilterExpression="expiresAt > :now",
+            ExpressionAttributeNames={"#type": "recordType"},
+            ExpressionAttributeValues=self.encode(
+                {":type": "messageDraft", ":now": int(now)}
+            ),
+            ScanIndexForward=False,
+            Limit=50,
+        )
+        return [self.decode(raw) for raw in result.get("Items", [])]
+
+    def commit_records(self, records):
+        self.transact([self.put_op(row) for row in records])
+
+    def commit_admin_shift(self, old, new, audit):
+        self.transact(
+            [
+                self.put_op(
+                    new, "revision = :revision", {":revision": old["revision"]}
+                ),
+                self.put_op(audit, "attribute_not_exists(pk)"),
+            ]
+        )
 
     def put_op(self, item, condition=None, values=None):
         op = {"TableName": self.table, "Item": self.encode(item)}
@@ -68,23 +122,22 @@ class DynamoStore:
             ]
         )
 
-    def commit_cancel(self, old, new, booking):
-        self.transact(
-            [
-                self.put_op(
-                    new, "revision = :revision", {":revision": old["revision"]}
-                ),
-                {
-                    "Update": {
-                        "TableName": self.table,
-                        "Key": self.encode({"pk": booking["pk"]}),
-                        "UpdateExpression": "SET #status = :canceled",
-                        "ConditionExpression": "#status = :active",
-                        "ExpressionAttributeNames": {"#status": "status"},
-                        "ExpressionAttributeValues": self.encode(
-                            {":canceled": "canceled", ":active": "active"}
-                        ),
-                    }
-                },
-            ]
-        )
+    def commit_cancel(self, old, new, booking, audit=None):
+        operations = [
+            self.put_op(new, "revision = :revision", {":revision": old["revision"]}),
+            {
+                "Update": {
+                    "TableName": self.table,
+                    "Key": self.encode({"pk": booking["pk"]}),
+                    "UpdateExpression": "SET #status = :canceled",
+                    "ConditionExpression": "#status = :active",
+                    "ExpressionAttributeNames": {"#status": "status"},
+                    "ExpressionAttributeValues": self.encode(
+                        {":canceled": "canceled", ":active": "active"}
+                    ),
+                }
+            },
+        ]
+        if audit:
+            operations.append(self.put_op(audit, "attribute_not_exists(pk)"))
+        self.transact(operations)

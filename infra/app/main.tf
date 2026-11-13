@@ -34,6 +34,20 @@ resource "aws_dynamodb_table" "data" {
     name = "pk"
     type = "S"
   }
+  attribute {
+    name = "recordType"
+    type = "S"
+  }
+  attribute {
+    name = "createdAt"
+    type = "N"
+  }
+  global_secondary_index {
+    name            = "recordType-createdAt"
+    hash_key        = "recordType"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
   ttl {
     attribute_name = "expiresAt"
     enabled        = true
@@ -85,7 +99,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com https://cognito-idp.us-east-2.amazonaws.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
       override                = true
     }
   }
@@ -139,7 +153,8 @@ resource "aws_iam_role_policy" "api" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:ConditionCheckItem"], Resource = aws_dynamodb_table.data.arn },
+      { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:ConditionCheckItem"], Resource = aws_dynamodb_table.data.arn },
+      { Effect = "Allow", Action = ["dynamodb:Query"], Resource = "${aws_dynamodb_table.data.arn}/index/recordType-createdAt" },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.api.arn}:*" }
     ]
   })
@@ -162,7 +177,7 @@ resource "aws_lambda_function" "api" {
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
   memory_size      = 256
-  timeout          = 15
+  timeout          = 25
   environment {
     variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin }
   }

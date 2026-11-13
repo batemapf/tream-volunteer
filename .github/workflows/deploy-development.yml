@@ -29,12 +29,15 @@ jobs:
       id-token: write
     env:
       AWS_REGION: us-east-2
+      PLAYWRIGHT_MODULE: /tmp/tream-browser/node_modules/playwright
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/tream-playwright
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Tests
         run: |
           python3 -m unittest discover -s backend/tests -v
           node --check public/app.js
+          node --check public/organizer.js
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.10.5
@@ -60,24 +63,30 @@ jobs:
         run: |
           python3 -m venv /tmp/tream-deploy-venv
           /tmp/tream-deploy-venv/bin/pip install 'boto3>=1.35,<2'
+          npm install --prefix /tmp/tream-browser --no-audit --no-fund playwright@1.56.1
+          /tmp/tream-browser/node_modules/.bin/playwright install chromium --only-shell
       - name: Seed draft schedule and publish frontend
         run: |
           export TABLE_NAME="$(terraform -chdir=infra/app output -raw table_name)"
           export API_URL="$(terraform -chdir=infra/app output -raw api_url)"
           export SITE_URL="$(terraform -chdir=infra/app output -raw site_url)"
+          export ORGANIZER_POOL_ID="$(terraform -chdir=infra/app output -raw organizer_pool_id)"
+          export ORGANIZER_CLIENT_ID="$(terraform -chdir=infra/app output -raw organizer_client_id)"
           web_bucket="$(terraform -chdir=infra/app output -raw web_bucket)"
           distribution="$(terraform -chdir=infra/app output -raw distribution_id)"
           /tmp/tream-deploy-venv/bin/python scripts/seed_schedule.py
           python3 - <<'PY'
           import json, os
           from pathlib import Path
-          Path('public/config.js').write_text('window.TREAM_CONFIG = '+json.dumps({'apiBase':os.environ['API_URL']})+';\n')
+          Path('public/config.js').write_text('window.TREAM_CONFIG = '+json.dumps({'apiBase':os.environ['API_URL'],'organizerPoolId':os.environ['ORGANIZER_POOL_ID'],'organizerClientId':os.environ['ORGANIZER_CLIENT_ID'],'region':'us-east-2'})+';\n')
           PY
           aws s3 sync public/ "s3://${web_bucket}/" --delete --cache-control 'max-age=60'
           aws cloudfront create-invalidation --distribution-id "$distribution" --paths '/*' --query Invalidation.Id --output text
           echo "SITE_URL=${SITE_URL}" >> "$GITHUB_ENV"
           echo "API_URL=${API_URL}" >> "$GITHUB_ENV"
           echo "TABLE_NAME=${TABLE_NAME}" >> "$GITHUB_ENV"
+          echo "ORGANIZER_POOL_ID=${ORGANIZER_POOL_ID}" >> "$GITHUB_ENV"
+          echo "ORGANIZER_CLIENT_ID=${ORGANIZER_CLIENT_ID}" >> "$GITHUB_ENV"
           {
             echo '## Development deployment'
             echo "- Board: ${SITE_URL}"
@@ -86,6 +95,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise deployed API and clean up test data
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_aws.py
+      - name: Exercise organizer authorization and operations
+        run: /tmp/tream-deploy-venv/bin/python scripts/smoke_admin.py
       - name: API diagnostics after a failed deployment test
         if: ${{ failure() }}
         continue-on-error: true

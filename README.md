@@ -35,3 +35,5 @@ The public prototype is deployed separately through Sites. The separate AWS deve
 AWS deployment setup and IAM requirements: [deployment access](docs/aws-deployment.md). Data lifecycle: [retention policy](docs/data-retention.md).
 
 AWS development board (shared test data; email disabled): https://dy2majdy4ufxo.cloudfront.net
+
+Organizer desk: https://dy2majdy4ufxo.cloudfront.net/organizer.html — [account setup and tools](docs/organizer-guide.md).

@@ -5,7 +5,7 @@ import hashlib
 import json
 import math
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 
@@ -53,6 +53,7 @@ def validate_interval(shift, start, end):
         )
         > 0.00001
         for t in (start, end)
+        if t not in (shift["start"], shift["end"])
     ):
         raise Problem("Choose one of the offered time increments.")
     duration = (end - start) * 60
@@ -81,11 +82,8 @@ def fits(shift, start, end):
 
 def epoch(date, hour, timezone_name="America/New_York"):
     minute = round(hour * 60)
-    return int(
-        datetime.fromisoformat(date)
-        .replace(hour=minute // 60, minute=minute % 60, tzinfo=ZoneInfo(timezone_name))
-        .timestamp()
-    )
+    midnight = datetime.fromisoformat(date).replace(tzinfo=ZoneInfo(timezone_name))
+    return int((midnight + timedelta(minutes=minute)).timestamp())
 
 
 def retention_expiry(event_end):

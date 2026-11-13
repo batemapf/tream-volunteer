@@ -32,9 +32,9 @@ The server checks interval boundaries, configured increments/minimums/full-shift
 ## Still to implement before using for real volunteers
 
 - Multi-selection/family cart UI (batch support exists in the API; the UI still confirms one row at a time).
-- Organizer Cognito authentication, schedule/policy editing, private contact view, overlap review and CSV export.
+- Organizer Cognito authentication, schedule/policy editing, private contact view, overlap review and CSV export are implemented in the next development iteration; see organizer-guide.md. Permanent organizer accounts still require the owner setup.
 - Sender identity/DNS configuration, SES production access, delivery processing, email-link issuance/resend/revocation and reminders; outbox records cannot simply be enabled as an email worker without the management-link issuance design.
-- Group/single/all messaging with recipient preview, opt-outs and annual-outreach preferences.
+- Group/single/all recipient preview and private saved drafts are implemented in the organizer desk; real sending, opt-outs and annual-outreach preferences remain.
 - Manage-link time edits, token recovery/revocation and email-based cross-device access. Development local credential loss currently requires organizer assistance; it is not email recovery.
 - Scheduled deletion (DynamoDB TTL is eventual), backup/export lifecycle controls satisfying the 27-month maximum, a restore drill and final retention rules.
 - Final schedule, organizer identities, operational alert destinations, launch review, abuse controls and production environment.
@@ -67,3 +67,10 @@ Terraform created 21 resources successfully using the configured OIDC role. Depl
 A browser test against AWS verified signup, the roster from an independent browser context, hidden private name/email, cancellation and desktop/mobile rendering. The automation browser lacked the environment proxy's root CA in its Chromium certificate store; the test used Playwright's HTTPS-verified request routing through the inherited proxy/CA configuration. TLS verification was not disabled. An independent curl request also verified HTTPS and the site's security headers.
 
 Live development bookings are shared; browser management credentials are still device-local until the email recovery flow exists. API smoke records are deleted; browser tests use synthetic contacts and cancel their test bookings.
+
+
+## Organizer iteration
+
+See [organizer guide](organizer-guide.md). Cognito password login, group authorization, granular coverage, revision-protected edits, private contacts, overlap review, safe CSV export, authorized cancellation and single/group/all message previews with saved drafts are implemented. The sparse DynamoDB draft index is private; no private records are added to public schedule responses. Sending is still disabled.
+
+The deployment workflow tests a temporary user's first-password challenge and group membership, then exercises the real organizer UI in Chromium and deletes the temporary user and synthetic private test data. Audit entries remain private under configured retention. One owner-created permanent user is needed to use the desk interactively.

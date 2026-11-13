@@ -231,15 +231,22 @@ function render() {
     .forEach((b) => (b.onclick = () => openShift(b.dataset.open)));
 }
 function options(j, val) {
-  let out = "";
+  const values = [];
   for (
     let t = j.start;
-    t <= j.end;
+    t <= j.end + 0.00001;
     t += (j.attendance?.incrementMinutes ?? 30) / 60
   )
-    out += `<option value="${t}" ${t === val ? "selected" : ""}>${fmt(t)}</option>`;
-  return out;
+    values.push(Math.round(t * 60) / 60);
+  if (!values.includes(j.end)) values.push(j.end);
+  return values
+    .map(
+      (t) =>
+        `<option value="${t}" ${t === val ? "selected" : ""}>${fmt(t)}</option>`,
+    )
+    .join("");
 }
+
 function closeWire() {
   modal.querySelector(".close").onclick = () => modal.close();
 }

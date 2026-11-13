@@ -60,6 +60,32 @@ class MemoryStore:
         with self.lock:
             return copy.deepcopy(self.rows.get(key))
 
+    def get_many(self, keys):
+        return [self.get(key) for key in keys]
+
+    def list_drafts(self, now):
+        return sorted(
+            [
+                copy.deepcopy(row)
+                for row in self.rows.values()
+                if row.get("recordType") == "messageDraft" and row["expiresAt"] > now
+            ],
+            key=lambda row: row["createdAt"],
+            reverse=True,
+        )[:50]
+
+    def commit_records(self, rows):
+        with self.lock:
+            for row in rows:
+                self.rows[row["pk"]] = copy.deepcopy(row)
+
+    def commit_admin_shift(self, old, new, audit):
+        with self.lock:
+            if self.rows[old["pk"]]["revision"] != old["revision"]:
+                raise Contention()
+            self.rows[new["pk"]] = copy.deepcopy(new)
+            self.rows[audit["pk"]] = copy.deepcopy(audit)
+
     def commit_booking(self, old, new, booking, idem, outbox):
         with self.lock:
             if (
@@ -70,7 +96,7 @@ class MemoryStore:
             for row in (new, booking, idem, outbox):
                 self.rows[row["pk"]] = copy.deepcopy(row)
 
-    def commit_cancel(self, old, new, booking):
+    def commit_cancel(self, old, new, booking, audit=None):
         with self.lock:
             if (
                 self.rows[old["pk"]]["revision"] != old["revision"]
@@ -79,6 +105,8 @@ class MemoryStore:
                 raise Contention()
             self.rows[new["pk"]] = copy.deepcopy(new)
             self.rows[booking["pk"]]["status"] = "canceled"
+            if audit:
+                self.rows[audit["pk"]] = copy.deepcopy(audit)
 
 
 class BookingTests(unittest.TestCase):
@@ -140,6 +168,13 @@ class BookingTests(unittest.TestCase):
         self.store.rows["SHIFT#two"]["attendance"]["minMinutes"] = 90
         with self.assertRaises(Problem):
             self.book(selection("two", end=10))
+
+    def test_entire_window_is_valid_when_increment_does_not_divide_length(self):
+        self.store.rows["SHIFT#one"]["end"] = 12.5
+        self.store.rows["SHIFT#one"]["flex"] = False
+        self.store.rows["SHIFT#one"]["attendance"]["incrementMinutes"] = 60
+        result = self.book(selection(end=12.5))
+        self.assertEqual(result["end"], 12.5)
 
     def test_invalid_numbers_and_grid(self):
         for start, end in [(True, 11), (9, float("nan")), (8, 11), (9, 9), (9, 10.25)]:

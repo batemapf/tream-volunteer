@@ -111,6 +111,35 @@ class HandlerTests(unittest.TestCase):
                 400,
             )
 
+    def test_admin_requires_trusted_access_claims_not_bearer_header(self):
+        self.assertEqual(
+            self.call(
+                "GET", "/admin/overview", headers={"Authorization": "Bearer invented"}
+            )[0],
+            403,
+        )
+        event = {
+            "requestContext": {
+                "http": {"method": "GET"},
+                "authorizer": {
+                    "jwt": {
+                        "claims": {
+                            "sub": "actor",
+                            "token_use": "id",
+                            "cognito:groups": ["organizers"],
+                        }
+                    }
+                },
+            },
+            "rawPath": "/admin/overview",
+            "headers": {},
+        }
+        self.assertEqual(handler.handler(event, None)["statusCode"], 403)
+        event["requestContext"]["authorizer"]["jwt"]["claims"]["token_use"] = "access"
+        result = handler.handler(event, None)
+        self.assertEqual(result["statusCode"], 200)
+        self.assertIn("bookings", json.loads(result["body"]))
+
     def test_health_does_not_require_database(self):
         handler._store = None
         self.assertEqual(
