@@ -74,3 +74,9 @@ User resolved the product/backend questions. See open-decisions.md for the autho
 ## Organizer desk deployed
 
 A Cognito-protected organizer desk is live at https://dy2majdy4ufxo.cloudfront.net/organizer.html. Includes granular coverage, revision-protected schedule/policy editing, private contacts, family/same-person overlap review, CSV export, organizer cancellation and individual/group/all recipient previews with saved/reloadable private drafts. Sending remains disabled. Permanent organizer accounts are created by the owner in Cognito pool tream-dev-organizers (us-east-2_ppF5IKYbw) and added to organizers. See organizer-guide.md for setup and verified release evidence. Public volunteer signup remains account-free; multi-selection/family cart UI and volunteer email management remain future work.
+
+## Responsive volunteer board — November 13, 2026
+
+The desktop spreadsheet is preserved. At 900px and below, the same rows become compact cards grouped by day, keeping job, hours, staffing coverage, consenting volunteer names and the signup action visible without horizontal data scrolling. Day/job/needs-help filters remain available in a sticky toolbar; the day strip scrolls independently and keeps the selected day visible. The signup dialog uses larger touch targets, 16px input text and a viewport-bounded scroll area. Privacy, backend rules and organizer workflows are unchanged.
+
+Responsive browser regression covers page widths 320–1440px, visible 44px mobile signup actions, local mobile signup/cancellation, and preserved desktop headers. Sample data is used only inside the automated browser fixture; no shared bookings are created by this responsive test.

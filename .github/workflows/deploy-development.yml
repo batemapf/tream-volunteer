@@ -99,6 +99,8 @@ jobs:
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_admin.py
       - name: Exercise public schedule policy rendering
         run: node scripts/browser_public_rules.cjs
+      - name: Exercise mobile volunteer board
+        run: node scripts/browser_mobile.cjs
       - name: API diagnostics after a failed deployment test
         if: ${{ failure() }}
         continue-on-error: true

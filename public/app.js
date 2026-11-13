@@ -106,16 +106,14 @@ async function loadSchedule() {
   if (!apiBase) return;
   const data = await api("/schedule");
   jobs = data.shifts;
-  days = [...new Set(jobs.map((j) => j.date))]
-    .sort()
-    .map((d) => [
-      d,
-      new Date(d + "T12:00:00").toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-      }),
-    ]);
+  days = [...new Set(jobs.map((j) => j.date))].sort().map((d) => [
+    d,
+    new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    }),
+  ]);
   const roles = [...new Set(jobs.map((j) => j.role))].sort();
   if (!roles.includes(role)) role = "all";
   $("#jobfilter").innerHTML =
@@ -188,7 +186,20 @@ function toast(t) {
   $("#toast").style.display = "block";
   setTimeout(() => ($("#toast").style.display = "none"), 3000);
 }
+function revealSelectedDay() {
+  if (!window.matchMedia("(max-width:900px)").matches) return;
+  const tabs = $("#days"),
+    active = tabs.querySelector('[aria-pressed="true"]');
+  if (!active) return;
+  const parent = tabs.getBoundingClientRect(),
+    item = active.getBoundingClientRect();
+  if (item.left < parent.left) tabs.scrollLeft -= parent.left - item.left + 4;
+  if (item.right > parent.right)
+    tabs.scrollLeft += item.right - parent.right + 4;
+}
+window.addEventListener("resize", revealSelectedDay);
 function render() {
+  const dayScroll = $("#days").scrollLeft;
   const shown = jobs.filter(
     (j) =>
       (day === "all" || day === j.date) &&
@@ -209,7 +220,11 @@ function render() {
     .join("");
   $("#rows").innerHTML =
     shown
-      .map((j) => {
+      .map((j, index) => {
+        const groupHeading =
+          index === 0 || shown[index - 1].date !== j.date
+            ? `<tr class="day-divider"><th colspan="7" scope="rowgroup">${esc(days.find(([d]) => d === j.date)[1])}<span>${shown.filter((other) => other.date === j.date).length} shifts</span></th></tr>`
+            : "";
         const s = stats(j),
           roster = people(j.id),
           visible = roster.filter(
@@ -222,7 +237,7 @@ function render() {
               : s.total === 0
                 ? "Be the first to join"
                 : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
-        return `<tr><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
+        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">On shift </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
           s.total
             ? `<button data-open="${j.id}">${visible
                 .slice(0, 3)
@@ -235,6 +250,8 @@ function render() {
       })
       .join("") ||
     '<tr><td colspan="7" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
+  $("#days").scrollLeft = dayScroll;
+  requestAnimationFrame(revealSelectedDay);
   $("#rowcount").textContent =
     `${shown.length} shifts · coverage counts people present at each time`;
   $("#mycount").textContent = entries.length;
