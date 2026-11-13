@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     # Reuse the configured trust environment; infrastructure itself is named tream-dev.
     environment: production

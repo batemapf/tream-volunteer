@@ -6,6 +6,8 @@ The page is publicly loadable, but all private data and organizer actions requir
 
 ## Create your account (one-time owner setup)
 
+Organizer user pool ID: `us-east-2_ppF5IKYbw`.
+
 After the organizer deployment succeeds:
 
 1. Open Amazon Cognito in **us-east-2** and choose user pool **tream-dev-organizers**. The deployment workflow also outputs its pool ID.
