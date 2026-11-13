@@ -27,18 +27,20 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   await context.route("**/config.js", (route) =>
     route.fulfill({
       contentType: "application/javascript",
-      body: 'window.TREAM_CONFIG={apiBase:"https://policy.example.test"}',
+      body: 'window.TREAM_CONFIG={apiBase:"https://policy-fixture.execute-api.us-east-2.amazonaws.com"}',
     }),
   );
-  await context.route("https://policy.example.test/**", (route) =>
-    route.fulfill({
-      headers: {
-        "access-control-allow-origin": "*",
-        "access-control-allow-headers": "content-type",
-        "access-control-allow-methods": "GET,OPTIONS",
-      },
-      json: { shifts: [shift], emailEnabled: false },
-    }),
+  await context.route(
+    "https://policy-fixture.execute-api.us-east-2.amazonaws.com/**",
+    (route) =>
+      route.fulfill({
+        headers: {
+          "access-control-allow-origin": "*",
+          "access-control-allow-headers": "content-type",
+          "access-control-allow-methods": "GET,OPTIONS",
+        },
+        json: { shifts: [shift], emailEnabled: false },
+      }),
   );
   const page = await context.newPage(),
     errors = [];
