@@ -44,11 +44,12 @@ jobs:
           # Decode for diagnostics only. AWS performs signature and trust validation.
           safe = {k: claims.get(k) for k in ['iss', 'aud', 'sub', 'repository', 'environment', 'ref']}
           print(json.dumps(safe, indent=2))
-          expected = 'repo:batemapf/tream-volunteer:environment:production'
+          expected = 'repo:batemapf@7645362/tream-volunteer@1456028757:environment:production'
           if claims.get('sub') != expected:
               print('::warning::Actual OIDC subject differs from the configured trust-policy subject.')
           PYCODE
       - name: Assume deployment role using GitHub OIDC
+        id: aws
         uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
         with:
           role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
@@ -67,7 +68,6 @@ jobs:
           aws s3api get-bucket-versioning --bucket "$state_bucket" > /tmp/tream-versioning.json
           aws s3api get-bucket-encryption --bucket "$state_bucket" > /tmp/tream-encryption.json
           aws s3api get-public-access-block --bucket "$state_bucket" > /tmp/tream-public-access.json
-          aws iam get-policy --policy-arn "arn:aws:iam::${account_id}:policy/tream-runtime-boundary" --query 'Policy.DefaultVersionId' --output text > /tmp/tream-boundary-version.txt
           python3 - <<'PY'
           import json
           def load(name):
@@ -79,18 +79,25 @@ jobs:
           assert any(r['ApplyServerSideEncryptionByDefault']['SSEAlgorithm'] == 'AES256' for r in rules), 'Expected SSE-S3 state encryption; KMS needs additional key permissions'
           block = load('public-access')['PublicAccessBlockConfiguration']
           assert all(block.get(k) for k in ['BlockPublicAcls','IgnorePublicAcls','BlockPublicPolicy','RestrictPublicBuckets']), 'Enable all four state-bucket public-access blocks'
-          print('State bucket region, versioning, encryption, public-access blocks and boundary existence verified.')
+          print('State bucket region, versioning, encryption and public-access blocks verified.')
           PY
+      - name: Verify runtime boundary exists
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
+        shell: bash
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          aws iam get-policy --policy-arn "arn:aws:iam::${account_id}:policy/tream-runtime-boundary" --query 'Policy.DefaultVersionId' --output text
       - name: Check SES readiness
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
           aws sesv2 get-account --query '{ProductionAccessEnabled:ProductionAccessEnabled,SendingEnabled:SendingEnabled,SendQuota:SendQuota}' --output json
           {
-            echo '## AWS preflight passed'
+            echo '## AWS connection and SES checks'
             echo '- GitHub OIDC successfully assumed the deployment role.'
-            echo '- State bucket exists in us-east-2 with versioning, SSE-S3 and public-access blocks.'
-            echo '- Runtime permissions boundary exists.'
+            echo '- See the individual state-bucket check result above.'
+            echo '- See the individual runtime-boundary check result above.'
             echo '- SES account status is available in the workflow log.'
             echo '- Read-only checks only: no infrastructure was provisioned and no email sent.'
             echo '- Full provisioning permissions remain to be exercised against the Terraform implementation.'
