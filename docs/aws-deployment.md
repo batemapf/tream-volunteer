@@ -75,3 +75,13 @@ References:
 - https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws
 - https://github.com/aws-actions/configure-aws-credentials
 - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html
+
+## First preflight result
+
+Workflow: https://github.com/batemapf/tream-volunteer/actions/runs/43354018913
+
+The configured role ARN passed the format check. AWS rejected OIDC role assumption with `Not authorized to perform sts:AssumeRoleWithWebIdentity`; state bucket, runtime boundary and SES checks did not run. No AWS resources were provisioned.
+
+This job uses `environment: production`, so the trust policy subject must be `repo:batemapf/tream-volunteer:environment:production`, not a branch subject such as `repo:batemapf/tream-volunteer:ref:refs/heads/main`. Confirm the provider ARN uses the deployment role's account, the audience is `sts.amazonaws.com`, and the trust action is `sts:AssumeRoleWithWebIdentity`. The error alone does not identify which trust condition failed; an organizational deny is also possible.
+
+After fixing trust, rerun AWS deployment preflight from the Actions tab. Do not add application permissions to fix a trust-policy failure.
