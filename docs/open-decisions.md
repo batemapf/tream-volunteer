@@ -16,6 +16,8 @@ Updated November 12, 2026. This supersedes conflicting proposals in feature-note
 - Secure revocable management links, resend flow, and no mutations from link visits.
 - Organizer username/password authentication is sufficient; use managed authentication.
 - User owns accounts, costs, backups and maintenance. GoDaddy DNS access is confirmed.
+- AWS region is us-east-2. Data retention ceiling is 27 calendar months to support annual re-engagement.
+- GitHub Actions will deploy; prefer AWS OIDC federation over long-lived access keys. See aws-deployment.md for setup and IAM requirements.
 
 ## Implementation defaults selected under delegated judgment
 
@@ -31,9 +33,9 @@ Updated November 12, 2026. This supersedes conflicting proposals in feature-note
 ## Remaining inputs and setup
 
 - Final jobs, shifts, locations, staffing counts, overflow percentages and attendance policies.
-- AWS account/region, chosen sender domain/subdomain, sender and monitored reply-to addresses.
+- AWS account ID, chosen sender domain/subdomain, sender and monitored reply-to addresses.
 - SES production access and sending limits; complete DNS verification and delivery-event configuration.
 - Initial organizer users and who can invite/reset other organizers.
-- Concrete retention period and backup/recovery settings. Ownership is resolved; these operational values are not yet specified.
+- Concrete backup/recovery settings implementing the confirmed 27-month ceiling, including recoverable copies; see data-retention.md.
 
 See technical-plan.md and email-options.md for recommendations. These documents specify intended production behavior; the hosted prototype remains browser-local and does not implement the backend.

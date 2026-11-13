@@ -31,3 +31,5 @@ See [feature notes](docs/feature-notes.md) and [open decisions](docs/open-decisi
 Public feedback prototype: https://brent-tream-planner.batemapf.chatgpt.site
 
 The public prototype is deployed separately through Sites. This repository does not yet have automated hosting or deployment configured.
+
+AWS deployment setup and IAM requirements: [deployment access](docs/aws-deployment.md). Data lifecycle: [retention policy](docs/data-retention.md).

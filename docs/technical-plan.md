@@ -2,6 +2,8 @@
 
 Planning only. No AWS resources have been created and no production behavior is implemented.
 
+Primary AWS region: us-east-2. See [deployment access](aws-deployment.md) for GitHub OIDC/IAM setup and [retention](data-retention.md) for the 27-month ceiling.
+
 ## Components
 
 - Static web UI on S3/CloudFront (or Amplify Hosting), preserving the spreadsheet board.
