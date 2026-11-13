@@ -29,6 +29,25 @@ jobs:
             echo '::error::Set AWS_ROLE_ARN in the production environment to arn:aws:iam::ACCOUNT_ID:role/tream-github-deploy.'
             exit 1
           fi
+      - name: Check OIDC identity claims
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import os, json, base64, urllib.request
+          url = os.environ['ACTIONS_ID_TOKEN_REQUEST_URL'] + '&audience=sts.amazonaws.com'
+          req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['ACTIONS_ID_TOKEN_REQUEST_TOKEN']})
+          with urllib.request.urlopen(req) as response:
+              token = json.load(response)['value']
+          print('::add-mask::' + token)
+          payload = token.split('.')[1]
+          claims = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))
+          # Decode for diagnostics only. AWS performs signature and trust validation.
+          safe = {k: claims.get(k) for k in ['iss', 'aud', 'sub', 'repository', 'environment', 'ref']}
+          print(json.dumps(safe, indent=2))
+          expected = 'repo:batemapf/tream-volunteer:environment:production'
+          if claims.get('sub') != expected:
+              print('::warning::Actual OIDC subject differs from the configured trust-policy subject.')
+          PYCODE
       - name: Assume deployment role using GitHub OIDC
         uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
         with:
