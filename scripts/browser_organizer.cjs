@@ -7,8 +7,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   });
   const errors = [];
   let draftId = null;
+  let previewDiagnostic = null;
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", async (response) => {
+    if (
+      response.request().method() === "POST" &&
+      response.url().endsWith("/admin/messages/preview")
+    ) {
+      const body = await response.json().catch(() => ({}));
+      previewDiagnostic = {
+        status: response.status(),
+        recipientCount: body.recipientCount,
+        volunteerCount: body.volunteerCount,
+        code: body.code,
+        message: body.message,
+      };
+    }
+
     if (
       response.request().method() === "POST" &&
       response.url().endsWith("/admin/messages") &&
@@ -127,6 +142,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     console.log(
       "PASS: organizer browser login, shift edit, contact selection, recipient preview, draft, overlap review, CSV and logout.",
     );
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        previewDiagnostic,
+        previewHeading: await page
+          .locator("#message-preview h2")
+          .allTextContents(),
+        messageError: await page
+          .locator("#message-error")
+          .textContent()
+          .catch(() => null),
+        invalidFields: await page
+          .locator("#message-form :invalid")
+          .evaluateAll((nodes) => nodes.map((n) => n.id)),
+      }),
+    );
+    throw error;
   } finally {
     await browser.close();
     // Report even on failure so the Python harness can delete the synthetic draft.

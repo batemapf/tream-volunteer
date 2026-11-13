@@ -40,6 +40,9 @@ def validate_interval(shift, start, end):
         or not shift["start"] <= start < end <= shift["end"]
     ):
         raise Problem("Choose hours within the shift window.")
+    if any(abs(t * 60 - round(t * 60)) > 0.00001 for t in (start, end)):
+        raise Problem("Choose times in whole minutes.")
+    start, end = round(start * 60) / 60, round(end * 60) / 60
     policy = shift.get("attendance", {})
     if not shift.get("flex", False) and (
         start != shift["start"] or end != shift["end"]
@@ -56,15 +59,20 @@ def validate_interval(shift, start, end):
         if t not in (shift["start"], shift["end"])
     ):
         raise Problem("Choose one of the offered time increments.")
-    duration = (end - start) * 60
+    duration = round((end - start) * 60, 6)
     if duration < policy.get("minMinutes", increment) or duration > policy.get(
         "maxMinutes", 1440
     ):
         raise Problem("These hours do not meet this job's commitment length.")
-    if policy.get("allowedStarts") is not None and start not in policy["allowedStarts"]:
+    if policy.get("allowedStarts") is not None and not any(
+        round(t * 60) == round(start * 60) for t in policy["allowedStarts"]
+    ):
         raise Problem("That arrival is not available for this job.")
-    if policy.get("allowedEnds") is not None and end not in policy["allowedEnds"]:
+    if policy.get("allowedEnds") is not None and not any(
+        round(t * 60) == round(end * 60) for t in policy["allowedEnds"]
+    ):
         raise Problem("That departure is not available for this job.")
+    return start, end
 
 
 def fits(shift, start, end):

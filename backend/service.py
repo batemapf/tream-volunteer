@@ -52,7 +52,7 @@ class BookingService:
             ):
                 raise Problem("This shift is not accepting signups.", "closed", 409)
             start, end = selection.get("start"), selection.get("end")
-            validate_interval(shift, start, end)
+            start, end = validate_interval(shift, start, end)
             if not fits(shift, start, end):
                 raise Problem(
                     "Part of this window is full. Try another time.", "full", 409

@@ -25,7 +25,7 @@
       day: "numeric",
     });
   const timeValue = (t) =>
-    `${String(Math.floor(t)).padStart(2, "0")}:${String(Math.round((t % 1) * 60)).padStart(2, "0")}`;
+    `${String(Math.floor(t) % 24).padStart(2, "0")}:${String(Math.round((t % 1) * 60)).padStart(2, "0")}`;
   const hour = (s) => {
     const [h, m] = s.split(":").map(Number);
     return h + m / 60;
@@ -293,7 +293,7 @@
           location: $("#shift-location").value,
           date: $("#shift-date").value,
           start: hour($("#shift-start").value),
-          end: hour($("#shift-end").value),
+          end: hour($("#shift-end").value) || 24,
           capacity: Number($("#shift-capacity").value),
           overflowPercent: Number($("#shift-overflow").value),
           flex: $("#shift-flex").checked,

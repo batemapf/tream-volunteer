@@ -176,6 +176,16 @@ class BookingTests(unittest.TestCase):
         result = self.book(selection(end=12.5))
         self.assertEqual(result["end"], 12.5)
 
+    def test_five_minute_choices_are_not_rejected_by_float_rounding(self):
+        self.store.rows["SHIFT#one"]["attendance"] = {
+            "incrementMinutes": 5,
+            "minMinutes": 5,
+            "maxMinutes": 5,
+        }
+        result = self.book(selection(start=9 + 5 / 60, end=9 + 10 / 60))
+        self.assertEqual(round((result["end"] - result["start"]) * 60), 5)
+        self.book(selection(start=9 + 10 / 60, end=9 + 15 / 60))
+
     def test_invalid_numbers_and_grid(self):
         for start, end in [(True, 11), (9, float("nan")), (8, 11), (9, 9), (9, 10.25)]:
             with self.subTest(start=start, end=end), self.assertRaises(Problem):

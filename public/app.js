@@ -1,4 +1,4 @@
-const days = [
+let days = [
   ["2026-12-02", "Wednesday, Dec 2"],
   ["2026-12-03", "Thursday, Dec 3"],
   ["2026-12-04", "Friday, Dec 4"],
@@ -35,8 +35,10 @@ let jobs = [
 }));
 const $ = (s) => document.querySelector(s),
   modal = $("#modal");
-const fmt = (t) =>
-  `${Math.floor(t) > 12 ? Math.floor(t) - 12 : Math.floor(t)}:${t % 1 ? "30" : "00"} ${t >= 12 ? "pm" : "am"}`;
+const fmt = (t) => {
+  const h = Math.floor(t) % 24;
+  return `${h % 12 || 12}:${String(Math.round(t * 60) % 60).padStart(2, "0")} ${h >= 12 ? "pm" : "am"}`;
+};
 const esc = (s) =>
   String(s).replace(
     /[&<>"']/g,
@@ -104,6 +106,23 @@ async function loadSchedule() {
   if (!apiBase) return;
   const data = await api("/schedule");
   jobs = data.shifts;
+  days = [...new Set(jobs.map((j) => j.date))]
+    .sort()
+    .map((d) => [
+      d,
+      new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      }),
+    ]);
+  const roles = [...new Set(jobs.map((j) => j.role))].sort();
+  if (!roles.includes(role)) role = "all";
+  $("#jobfilter").innerHTML =
+    '<option value="all">All jobs</option>' +
+    roles.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
+  $("#jobfilter").value = role;
+  if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
   seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
   render();
 }
@@ -203,7 +222,7 @@ function render() {
               : s.total === 0
                 ? "Be the first to join"
                 : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
-        return `<tr><td class="number">${Number(j.id) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>December ${+j.date.slice(-2)}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${j.name}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
+        return `<tr><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
           s.total
             ? `<button data-open="${j.id}">${visible
                 .slice(0, 3)
@@ -230,7 +249,7 @@ function render() {
     .querySelectorAll("[data-open]")
     .forEach((b) => (b.onclick = () => openShift(b.dataset.open)));
 }
-function options(j, val) {
+function candidateTimes(j, kind) {
   const values = [];
   for (
     let t = j.start;
@@ -239,6 +258,29 @@ function options(j, val) {
   )
     values.push(Math.round(t * 60) / 60);
   if (!values.includes(j.end)) values.push(j.end);
+  const allowed =
+    j.attendance?.[kind === "start" ? "allowedStarts" : "allowedEnds"];
+  return values.filter(
+    (t) =>
+      (!allowed ||
+        allowed.some((a) => Math.round(a * 60) === Math.round(t * 60))) &&
+      (kind === "start" ? t < j.end : t > j.start),
+  );
+}
+function validEnds(j, start) {
+  return candidateTimes(j, "end").filter(
+    (end) =>
+      end > start &&
+      (end - start) * 60 >= (j.attendance?.minMinutes ?? 30) - 0.00001 &&
+      (end - start) * 60 <= (j.attendance?.maxMinutes ?? 1440) + 0.00001,
+  );
+}
+function options(j, val, kind = "end") {
+  let values = candidateTimes(j, kind);
+  if (!j.flex) values = [kind === "start" ? j.start : j.end];
+  if (kind === "start" && j.flex)
+    values = values.filter((start) => validEnds(j, start).length);
+  if (!values.includes(val)) val = kind === "start" ? values[0] : values.at(-1);
   return values
     .map(
       (t) =>
@@ -265,10 +307,25 @@ function openShift(id) {
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · CANAL PARK</p><h2>${j.name}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "Delivery crews need the full window."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : '<p class="sub">No one has joined yet. You could get this crew started.</p>'}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is covered. Try another shift that needs help.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start)}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div><label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : '<p class="sub">No one has joined yet. You could get this crew started.</p>'}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div><label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
+  if (j.flex) {
+    const updateEnds = () => {
+      const preferred = Number($("#end").value),
+        values = validEnds(j, Number($("#start").value));
+      const chosen = values.includes(preferred) ? preferred : values.at(-1);
+      $("#end").innerHTML = values
+        .map(
+          (t) =>
+            `<option value="${t}" ${t === chosen ? "selected" : ""}>${fmt(t)}</option>`,
+        )
+        .join("");
+    };
+    $("#start").onchange = updateEnds;
+    updateEnds();
+  }
   $("#name").oninput = () => {
     $("#namepreview").textContent = $("#name").value.trim()
       ? "Public preview: " + publicLabel($("#name").value)
@@ -354,13 +411,13 @@ function openShift(id) {
       entries.push(entry);
       save();
     }
-    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${j.name}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · Canal Park</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p><button class="primary full" id="done">Back to the board</button>`;
+    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${esc(j.name)}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · ${esc(j.location || "Canal Park")}</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p><button class="primary full" id="done">Back to the board</button>`;
     closeWire();
     $("#done").onclick = () => modal.close();
   };
 }
 function manage() {
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>My demo signups</h2><p class="sub">Management access is saved on this browser. Email links will be available when email is enabled.</p>${entries.length ? entries.map((p) => `<div class="manage-card"><strong>${jobs.find((j) => String(j.id) === String(p.job)).name}</strong><p>${days.find((x) => x[0] === jobs.find((j) => String(j.id) === String(p.job)).date)[1]} · ${fmt(p.start)}–${fmt(p.end)}</p><p class="sub">Board name: ${esc(p.publicName)}</p><button data-cancel="${p.id}">Cancel signup</button></div>`).join("") : "<p>No demo signups yet. Choose a shift on the board to join.</p>"}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>My demo signups</h2><p class="sub">Management access is saved on this browser. Email links will be available when email is enabled.</p>${entries.length ? entries.map((p) => `<div class="manage-card"><strong>${esc(jobs.find((j) => String(j.id) === String(p.job)).name)}</strong><p>${days.find((x) => x[0] === jobs.find((j) => String(j.id) === String(p.job)).date)[1]} · ${fmt(p.start)}–${fmt(p.end)}</p><p class="sub">Board name: ${esc(p.publicName)}</p><button data-cancel="${p.id}">Cancel signup</button></div>`).join("") : "<p>No demo signups yet. Choose a shift on the board to join.</p>"}`;
   if (!modal.open) modal.showModal();
   closeWire();
   modal.querySelectorAll("[data-cancel]").forEach(
