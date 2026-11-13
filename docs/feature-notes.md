@@ -65,3 +65,7 @@ Implemented on the existing public prototype URL:
 - Local demo management allows cancellation. No organizer view or authentication introduced.
 
 Future production architecture must keep private contact records separate from the public roster response; hiding columns in the UI is insufficient. Public-board consent language and whether a public roster is acceptable remain for Dave/Andy review. No real backend/email delivery or real concurrent-booking guarantee is implemented in this demo. Programmatic privacy, capacity, filters, and partial-coverage checks passed; browser visual QA was unavailable.
+
+## Requirements confirmed — November 12, 2026
+
+User resolved the product/backend questions. See open-decisions.md for the authoritative decisions and selected defaults; technical-plan.md for the proposed AWS design; email-options.md for the SES recommendation and alternatives. Earlier Airtable/authentication proposals are historical context, not current requirements. Hosted prototype behavior remains unchanged by this documentation update.

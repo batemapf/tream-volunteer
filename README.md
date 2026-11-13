@@ -26,7 +26,7 @@ This is a prototype with fictional volunteers. There is no shared database, serv
 
 ## Project notes
 
-See [feature notes](docs/feature-notes.md) and [open decisions](docs/open-decisions.md) before implementing production behavior. The spreadsheet experience is selected; Airtable versus a custom backend remains undecided.
+See [feature notes](docs/feature-notes.md) and [open decisions](docs/open-decisions.md) before implementing production behavior. The spreadsheet experience and a custom AWS backend are selected. See [technical plan](docs/technical-plan.md) and [email options](docs/email-options.md) for the proposed implementation and SES recommendation.
 
 Public feedback prototype: https://brent-tream-planner.batemapf.chatgpt.site
 
