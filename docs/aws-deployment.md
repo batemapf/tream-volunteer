@@ -96,3 +96,11 @@ repo:batemapf@7645362/tream-volunteer@1456028757:environment:production
 ```
 
 The configured role and provider account match (620144980370), issuer and audience are correct, and the environment is production. The supplied trust policy's older name-only subject does not match this observed ID-bearing subject. Update the trust policy StringEquals `sub` to the exact value above, preserving the audience, principal, action and effect. Earlier troubleshooting suggestions are historical; this mismatch is now directly observed. Do not broaden the subject to a wildcard.
+
+## Successful bootstrap preflight
+
+Latest rerun of https://github.com/batemapf/tream-volunteer/actions/runs/43354574866 passed after correcting the OIDC subject and the runtime boundary policy's missing `tream-` name prefix.
+
+Verified: GitHub OIDC login to tream-github-deploy, state bucket in us-east-2, enabled versioning, SSE-S3 encryption, all four public-access blocks, runtime-boundary policy existence, and permission to read SES account status. SES was last observed in sandbox (200/day, 1/second); production sending still needs approval.
+
+These were read-only bootstrap checks. They do not validate boundary policy contents, exercise all Terraform provisioning permissions or deploy application infrastructure. Terraform implementation and plan/apply remain next steps.
