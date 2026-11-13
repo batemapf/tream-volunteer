@@ -87,6 +87,12 @@ jobs:
         run: |
           account_id="$(aws sts get-caller-identity --query Account --output text)"
           aws iam get-policy --policy-arn "arn:aws:iam::${account_id}:policy/tream-runtime-boundary" --query 'Policy.DefaultVersionId' --output text
+      - name: Read development resource status
+        if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
+        shell: bash
+        run: |
+          aws dynamodb describe-table --table-name tream-dev-data --query '{Table:Table.TableStatus,Indexes:Table.GlobalSecondaryIndexes[].{Name:IndexName,Status:IndexStatus,Backfilling:Backfilling}}' --output json
+          aws cognito-idp list-user-pools --max-results 60 --query 'UserPools[?Name==`tream-dev-organizers`].{Name:Name,Id:Id}' --output json
       - name: Check SES readiness
         if: ${{ !cancelled() && steps.aws.outcome == 'success' }}
         shell: bash
