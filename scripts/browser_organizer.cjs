@@ -89,7 +89,31 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     if ((await download).suggestedFilename() !== "tream-roster.csv")
       throw new Error("CSV download missing");
     await page.setViewportSize({ width: 390, height: 844 });
+    // Hold an authorized refresh in flight while signing out; stale data must stay hidden.
+    let complete;
+    const heldResponse = new Promise((resolve) => {
+      complete = resolve;
+    });
+    await page.route("**/admin/overview", async (route) => {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const response = await route.fetch();
+        await route.fulfill({ response });
+      } finally {
+        complete();
+      }
+    });
+    const refreshing = page.waitForRequest((request) =>
+      request.url().endsWith("/admin/overview"),
+    );
+    await page.getByRole("button", { name: "Refresh", exact: true }).click();
+    await refreshing;
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Organizer sign-in", exact: true })
+      .waitFor();
+    await heldResponse;
+    await page.waitForTimeout(100);
     await page
       .getByRole("heading", { name: "Organizer sign-in", exact: true })
       .waitFor();

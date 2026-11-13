@@ -14,6 +14,14 @@ After the organizer deployment succeeds:
 4. Open the organizer URL and sign in with that username and temporary password. The page asks you to set your own password on first sign-in.
 5. Create separate users for Dave and Andy when wanted; privately share their temporary credentials. Do not share one account.
 
+Alternatively, in a checkout with the owner's AWS identity (for example AWS CloudShell), run:
+
+```sh
+python3 scripts/create_organizer.py --pool YOUR_POOL_ID --username YOUR_USERNAME
+```
+
+The helper prompts twice for a temporary password, creates the user without sending email and adds organizer membership. It never accepts a password on the command line or replaces an existing account. It requires boto3 and `cognito-idp:AdminCreateUser` / `cognito-idp:AdminAddUserToGroup` for this pool.
+
 A user who is not in the group cannot access organizer data even with a valid password. Access tokens last 15 minutes; the page asks for sign-in again after expiry. Tokens are kept in sessionStorage for the current browser tab, never passwords. Signing out clears the tab token, private view and dialogs; already-issued tokens can remain valid until expiry. Immediate server-side session revocation is not implemented by the API Gateway JWT authorizer.
 
 No permanent organizer accounts are created by automation. Smoke tests create an uninvited synthetic account, test password change and group access, and delete it afterward.

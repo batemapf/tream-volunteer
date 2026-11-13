@@ -84,27 +84,33 @@
     return result;
   }
   async function api(path, { method = "GET", body, raw = false } = {}) {
+    const credential = token;
     const response = await fetch(config.apiBase + path, {
       method,
       headers: {
-        Authorization: "Bearer " + token,
+        Authorization: "Bearer " + credential,
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
+    const result =
+      raw && response.ok
+        ? await response.text()
+        : await response.json().catch(() => ({}));
+    if (token !== credential)
+      throw new Error("Session changed. Please sign in again.");
     if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401 || response.status === 403)
         logout(
           response.status === 403
             ? "Your account needs membership in the organizers group."
             : "Your session expired. Please sign in again.",
         );
-      }
       throw new Error(result.message || "Request failed.");
     }
-    return raw ? response.text() : response.json();
+    return result;
   }
+
   function login(message = "") {
     $("#logout").hidden = true;
     root.innerHTML = `<section class="a-login"><p class="eyebrow">BRENT HOLIDAY SALE</p><h1>${challenge ? "Choose your password" : "Organizer sign-in"}</h1><p class="sub">${challenge ? "Replace your temporary password to continue." : "Private contacts and schedule management."}</p><form id="login-form">${challenge ? "" : `<label for="username">Username</label><input id="username" autocomplete="username" required value="${esc(username)}">`}<label for="password">${challenge ? "New password" : "Password"}</label><input id="password" type="password" autocomplete="${challenge ? "new-password" : "current-password"}" required ${challenge ? 'minlength="12"' : ""}>${challenge ? '<label for="confirm-password">Confirm new password</label><input id="confirm-password" type="password" autocomplete="new-password" required><p class="sub">At least 12 characters, including uppercase, lowercase, a number and a symbol.</p>' : ""}<p id="login-error" class="a-error" role="alert">${esc(message)}</p><button class="primary full" ${config.organizerClientId ? "" : "disabled"}>${challenge ? "Set password and sign in" : "Sign in"}</button></form><p class="a-footnote">${config.organizerClientId ? "Accounts are created by the team owner. For a password reset, contact the owner." : "Organizer access is not configured in this local preview."}</p></section>`;
