@@ -471,6 +471,8 @@
             } catch (error) {
               if ($("#review-error"))
                 $("#review-error").textContent = error.message;
+            } finally {
+              lockModal(false);
             }
           };
         }),
