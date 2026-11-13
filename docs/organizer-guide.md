@@ -68,3 +68,11 @@ Organizer mutations write private audit records with actor identity and retentio
 The organizer list uses active commitments from the registered event shifts; it is not a historical canceled-booking/contact archive. CSV exports follow day/job/search filters. Exported files contain private contact details and need to be deleted under the project's retention policy.
 
 This remains development. Sending, volunteer email-based management/recovery, public multi-selection UI, full retention cleanup and production launch still require implementation/configuration.
+
+## Verified deployment
+
+Release workflow: https://github.com/batemapf/tream-volunteer/actions/runs/43361834138
+
+Passed 31 unit tests, deployed booking concurrency/privacy checks, real Cognito temporary-password setup, rejection of ungrouped users, organizer API operations and browser login/editing/recipient preview/draft save-and-reload/overlap review/CSV/logout checks. A delayed private response cannot restore the view after logout. Public schedule tests verify edited dates/roles/locations, literal-text rendering and exact five-minute choices. Temporary test users, booking/draft/review records were cleaned up; audit entries remain private under retention metadata.
+
+The static organizer page returns HTTP 200; unauthenticated organizer API access returns HTTP 401. Email sending is still disabled. The workflow runs on Ubuntu 24.04 to match the pinned browser version.

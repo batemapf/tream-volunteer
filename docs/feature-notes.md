@@ -69,3 +69,8 @@ Future production architecture must keep private contact records separate from t
 ## Requirements confirmed — November 12, 2026
 
 User resolved the product/backend questions. See open-decisions.md for the authoritative decisions and selected defaults; technical-plan.md for the proposed AWS design; email-options.md for the SES recommendation and alternatives. Earlier Airtable/authentication proposals are historical context, not current requirements. Hosted prototype behavior remains unchanged by this documentation update.
+
+
+## Organizer desk deployed
+
+A Cognito-protected organizer desk is live at https://dy2majdy4ufxo.cloudfront.net/organizer.html. Includes granular coverage, revision-protected schedule/policy editing, private contacts, family/same-person overlap review, CSV export, organizer cancellation and individual/group/all recipient previews with saved/reloadable private drafts. Sending remains disabled. Permanent organizer accounts are created by the owner in Cognito pool tream-dev-organizers (us-east-2_ppF5IKYbw) and added to organizers. See organizer-guide.md for setup and verified release evidence. Public volunteer signup remains account-free; multi-selection/family cart UI and volunteer email management remain future work.
