@@ -1,0 +1,78 @@
+name: AWS deployment preflight
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/aws-preflight.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      DEPLOY_ROLE_ARN: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+    steps:
+      - name: Check role configuration
+        shell: bash
+        run: |
+          if [[ ! "$DEPLOY_ROLE_ARN" =~ ^arn:aws:iam::[0-9]{12}:role/tream-github-deploy$ ]]; then
+            echo '::error::Set AWS_ROLE_ARN in the production environment to arn:aws:iam::ACCOUNT_ID:role/tream-github-deploy.'
+            exit 1
+          fi
+      - name: Assume deployment role using GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: us-east-2
+          role-session-name: tream-preflight
+          retry-max-attempts: 2
+          mask-aws-account-id: true
+      - name: Verify identity, state bucket and runtime boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          state_bucket="tream-${account_id}-tfstate"
+          aws s3api head-bucket --bucket "$state_bucket"
+          aws s3api get-bucket-location --bucket "$state_bucket" > /tmp/tream-location.json
+          aws s3api get-bucket-versioning --bucket "$state_bucket" > /tmp/tream-versioning.json
+          aws s3api get-bucket-encryption --bucket "$state_bucket" > /tmp/tream-encryption.json
+          aws s3api get-public-access-block --bucket "$state_bucket" > /tmp/tream-public-access.json
+          aws iam get-policy --policy-arn "arn:aws:iam::${account_id}:policy/tream-runtime-boundary" --query 'Policy.DefaultVersionId' --output text > /tmp/tream-boundary-version.txt
+          python3 - <<'PY'
+          import json
+          def load(name):
+              with open('/tmp/tream-'+name+'.json') as f:
+                  return json.load(f)
+          assert load('location')['LocationConstraint'] == 'us-east-2', 'State bucket must be in us-east-2'
+          assert load('versioning').get('Status') == 'Enabled', 'State bucket versioning must be enabled'
+          rules = load('encryption')['ServerSideEncryptionConfiguration']['Rules']
+          assert any(r['ApplyServerSideEncryptionByDefault']['SSEAlgorithm'] == 'AES256' for r in rules), 'Expected SSE-S3 state encryption; KMS needs additional key permissions'
+          block = load('public-access')['PublicAccessBlockConfiguration']
+          assert all(block.get(k) for k in ['BlockPublicAcls','IgnorePublicAcls','BlockPublicPolicy','RestrictPublicBuckets']), 'Enable all four state-bucket public-access blocks'
+          print('State bucket region, versioning, encryption, public-access blocks and boundary existence verified.')
+          PY
+      - name: Check SES readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws sesv2 get-account --query '{ProductionAccessEnabled:ProductionAccessEnabled,SendingEnabled:SendingEnabled,SendQuota:SendQuota}' --output json
+          {
+            echo '## AWS preflight passed'
+            echo '- GitHub OIDC successfully assumed the deployment role.'
+            echo '- State bucket exists in us-east-2 with versioning, SSE-S3 and public-access blocks.'
+            echo '- Runtime permissions boundary exists.'
+            echo '- SES account status is available in the workflow log.'
+            echo '- Read-only checks only: no infrastructure was provisioned and no email sent.'
+            echo '- Full provisioning permissions remain to be exercised against the Terraform implementation.'
+          } >> "$GITHUB_STEP_SUMMARY"
