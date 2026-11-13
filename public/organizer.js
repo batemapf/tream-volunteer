@@ -44,6 +44,16 @@
   try {
     token = sessionStorage.getItem("tream-organizer-access") || "";
   } catch {}
+  let modalBusy = false;
+  dialog.addEventListener("cancel", (event) => {
+    if (modalBusy) event.preventDefault();
+  });
+  function lockModal(busy) {
+    modalBusy = busy;
+    dialog
+      .querySelectorAll("button")
+      .forEach((button) => (button.disabled = busy));
+  }
   function toast(message) {
     $("#toast").textContent = message;
     $("#toast").style.display = "block";
@@ -62,6 +72,7 @@
     selected.clear();
     challenge = null;
     preview = null;
+    modalBusy = false;
     dialog.close();
     dialog.innerHTML = "";
     login(message);
@@ -258,6 +269,7 @@
       .forEach((b) => (b.onclick = () => editShift(b.dataset.edit)));
   }
   function openModal(html) {
+    modalBusy = false;
     dialog.innerHTML =
       '<button class="close" aria-label="Close">×</button>' + html;
     if (!dialog.open) dialog.showModal();
@@ -283,8 +295,9 @@
     limit();
     $("#shift-form").onsubmit = async (event) => {
       event.preventDefault();
+      if (modalBusy) return;
       const button = $("#shift-form .primary");
-      button.disabled = true;
+      lockModal(true);
       try {
         const body = {
           revision: s.revision,
@@ -307,8 +320,8 @@
           },
         };
         await api("/admin/shifts/" + id, { method: "POST", body });
-        dialog.close();
         await refresh();
+        dialog.close();
         toast("Shift saved.");
       } catch (error) {
         const target = $("#shift-error");
@@ -318,6 +331,8 @@
               ? "Advanced rules must be JSON arrays or null."
               : error.message;
         button.disabled = false;
+      } finally {
+        lockModal(false);
       }
     };
   }
@@ -391,18 +406,21 @@
       `<h2>Cancel this commitment?</h2><div class="summary"><strong>${esc(b.name)}</strong><br>${esc(job(b.shiftId).name)}<br>${dateLabel(job(b.shiftId).date)} · ${fmt(b.start)}–${fmt(b.end)}</div><p class="sub">Their space will reopen. No notification is sent while email is disabled.</p><p id="cancel-error" class="a-error" role="alert"></p><button class="primary" id="cancel-confirm">Yes, cancel commitment</button>`,
     );
     $("#cancel-confirm").onclick = async () => {
-      $("#cancel-confirm").disabled = true;
+      if (modalBusy) return;
+      lockModal(true);
       try {
         await api("/admin/bookings/" + id + "/cancel", {
           method: "POST",
           body: {},
         });
-        dialog.close();
         await refresh();
+        dialog.close();
         toast("Commitment canceled.");
       } catch (error) {
         if ($("#cancel-error")) $("#cancel-error").textContent = error.message;
         if ($("#cancel-confirm")) $("#cancel-confirm").disabled = false;
+      } finally {
+        lockModal(false);
       }
     };
   }
@@ -440,13 +458,15 @@
           );
           $("#review-form").onsubmit = async (e) => {
             e.preventDefault();
+            if (modalBusy) return;
+            lockModal(true);
             try {
               await api("/admin/conflicts/" + c.id + "/review", {
                 method: "POST",
                 body: { note: $("#review-note").value },
               });
-              dialog.close();
               await refresh();
+              dialog.close();
               toast("Overlap marked reviewed.");
             } catch (error) {
               if ($("#review-error"))

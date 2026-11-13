@@ -97,6 +97,8 @@ jobs:
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_aws.py
       - name: Exercise organizer authorization and operations
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_admin.py
+      - name: Exercise public schedule policy rendering
+        run: node scripts/browser_public_rules.cjs
       - name: API diagnostics after a failed deployment test
         if: ${{ failure() }}
         continue-on-error: true
