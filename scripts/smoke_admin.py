@@ -141,7 +141,7 @@ try:
             "email": contact_email,
             "selections": [
                 create_selection("0", "=Smoke Formula"),
-                create_selection("1", "Second Family Member"),
+                create_selection("0", "Second Family Member"),
             ],
         },
     )
