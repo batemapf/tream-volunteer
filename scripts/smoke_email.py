@@ -12,6 +12,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from store import DynamoStore
+from recovery import contact_hash
+from domain import token_hash
 
 store = DynamoStore()
 origin, api = os.environ["SITE_URL"], os.environ["API_URL"]
@@ -100,6 +102,53 @@ try:
     assert result["status"] == "booked", "Test booking failed"
     booking_id, confirmation_id = result["bookingId"], result["notificationId"]
     wait_mail("confirmation")
+    requested_at = int(time.time())
+    browser("recover")
+    summaries = store.client.scan(
+        TableName=store.table,
+        ConsistentRead=True,
+        FilterExpression="#kind = :kind AND recoveryContactHash = :hash AND createdAt >= :since",
+        ExpressionAttributeNames={"#kind": "kind"},
+        ExpressionAttributeValues=store.encode(
+            {
+                ":kind": "recovery",
+                ":hash": contact_hash("batemapf@gmail.com"),
+                ":since": requested_at,
+            }
+        ),
+    )["Items"]
+    summaries = [store.decode(row) for row in summaries]
+    assert summaries, "Recovery email was not created"
+    summary = max(summaries, key=lambda row: row["createdAt"])
+    recovered_token = summary.get("manageToken")
+    if recovered_token:
+        print("::add-mask::" + recovered_token, flush=True)
+        request = urllib.request.Request(
+            api + "/bookings/" + booking_id,
+            headers={"Authorization": "Bearer " + recovered_token, "Origin": origin},
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            assert json.load(response)["id"] == booking_id
+        assert any(
+            item["bookingId"] == booking_id for item in summary["items"]
+        ), "New signup missing from summary"
+    deadline = time.monotonic() + 200
+    while time.monotonic() < deadline:
+        receipt = store.get(summary["pk"])
+        if receipt["status"] == "sent":
+            assert "items" not in receipt and "manageToken" not in receipt
+            print(
+                "PASS: SES accepted signup recovery email; private summary payload cleared",
+                flush=True,
+            )
+            break
+        assert receipt["status"] not in (
+            "failed",
+            "suppressed",
+        ), "Recovery delivery failed"
+        time.sleep(5)
+    else:
+        raise AssertionError("Recovery email delivery timed out")
     before = store.get("BOOKING#" + booking_id)
     browser("view")
     if os.environ.get("LEGACY_SITE_URL"):
@@ -115,7 +164,7 @@ try:
     assert not any(p["id"] == booking_id for p in store.get("SHIFT#9")["roster"])
     wait_mail("cancellation")
     print(
-        "PASS: book → notify → read-only email link → rebook in mobile UI → notify → cancel in mobile UI → notify. Verify arrival in the real inbox separately."
+        "PASS: book → notify → email recovery → read-only email link → rebook in mobile UI → notify → cancel in mobile UI → notify. Verify arrival in the real inbox separately."
     )
 finally:
     if booking_id:

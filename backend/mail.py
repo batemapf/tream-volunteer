@@ -65,6 +65,25 @@ def notification(booking, shift, kind, token=None, now=None):
 
 
 def content(row):
+    if row["kind"] == "recovery":
+        body = "Your active volunteer signups\n\n"
+        for item in row["items"]:
+            shift = item["shift"]
+
+            def hour(value):
+                h = int(value)
+                return (
+                    f"{h%12 or 12}:{round((value-h)*60):02d} {'am' if h<12 else 'pm'}"
+                )
+
+            link = (
+                os.environ["SITE_ORIGIN"]
+                + "/manage.html#"
+                + urlencode({"booking": item["bookingId"], "token": row["manageToken"]})
+            )
+            body += f"{item['name']}\n{shift['name']}\n{shift['date']} · {hour(item['start'])}–{hour(item['end'])} Eastern\n{shift['location']}\nView, change or cancel: {link}\n\n"
+        body += "These private recovery links are valid for 24 hours. Request fresh links from Find my signups if needed. Opening a link does not change a signup.\n\nOrganized by Brent PTA.\n"
+        return "Brent PTA holiday sale: Your signups", body
     labels = {
         "confirmation": "Signup confirmed",
         "changed": "Signup changed",
@@ -183,8 +202,8 @@ def handler(event, context):
         store.client.update_item(
             TableName=store.table,
             Key=store.encode({"pk": row["pk"]}),
-            UpdateExpression="SET #status = :status, messageId = :message, completedAt = :now REMOVE recordType, manageToken, details, shift, recipient, leaseUntil",
-            ExpressionAttributeNames={"#status": "status"},
+            UpdateExpression="SET #status = :status, messageId = :message, completedAt = :now REMOVE recordType, manageToken, details, shift, recipient, leaseUntil, #items",
+            ExpressionAttributeNames={"#status": "status", "#items": "items"},
             ExpressionAttributeValues=store.encode(
                 {":status": status, ":message": message_id, ":now": int(time.time())}
             ),

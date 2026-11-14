@@ -6,6 +6,7 @@ import re
 import time
 import uuid
 from mail import notification, enabled
+from recovery import contact_hash
 from domain import (
     Problem,
     effective_capacity,
@@ -82,6 +83,7 @@ class BookingService:
                 "shiftId": shift["id"],
                 "participantId": selection["participantId"],
                 "email": email,
+                "contactHash": contact_hash(email),
                 "name": selection["name"],
                 "publicName": result["publicName"],
                 "subJobPreferences": preferences,
@@ -148,11 +150,19 @@ class BookingService:
                 "This management link is invalid or expired.", "unauthorized", 403
             )
         booking = self.store.get("BOOKING#" + booking_id)
-        if (
-            not booking
-            or booking["expiresAt"] <= self.clock()
-            or not hmac.compare_digest(booking["tokenHash"], token_hash(token))
-        ):
+        valid = False
+        if booking and booking["expiresAt"] > self.clock():
+            valid = hmac.compare_digest(booking["tokenHash"], token_hash(token))
+            if not valid:
+                grant = self.store.get("RECOVERYACCESS#" + token_hash(token))
+                valid = bool(
+                    grant
+                    and grant["expiresAt"] > self.clock()
+                    and hmac.compare_digest(
+                        grant["contactHash"], contact_hash(booking["email"])
+                    )
+                )
+        if not valid:
             raise Problem(
                 "This management link is invalid or expired.", "unauthorized", 403
             )

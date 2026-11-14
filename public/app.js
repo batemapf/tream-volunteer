@@ -101,7 +101,11 @@ let seed = jobs.flatMap((j) =>
   })),
 );
 const apiBase = window.TREAM_CONFIG?.apiBase;
-const storageKey = apiBase ? "tream-aws-manage" : "tream-board-demo";
+// Commitments live on the server and in email, never in a browser signup list.
+try {
+  localStorage.removeItem("tream-aws-manage");
+  localStorage.removeItem("tream-board-demo");
+} catch {}
 async function api(path, options = {}) {
   const response = await fetch(apiBase + path, {
     ...options,
@@ -131,36 +135,6 @@ async function loadSchedule() {
   $("#jobfilter").value = role;
   if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
   seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
-  // Browser receipts are shortcuts; the authenticated booking remains authoritative.
-  entries = (
-    await Promise.all(
-      entries.map(async (entry) => {
-        try {
-          const current = await api(
-            "/bookings/" + encodeURIComponent(entry.id),
-            {
-              headers: { Authorization: "Bearer " + entry.token },
-            },
-          );
-          return current.status === "active"
-            ? {
-                ...entry,
-                job: current.shiftId,
-                start: current.start,
-                end: current.end,
-                publicName: current.publicName,
-                subJobPreferences: current.subJobPreferences || [],
-              }
-            : null;
-        } catch {
-          return entry;
-        }
-      }),
-    )
-  ).filter(Boolean);
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(entries));
-  } catch {}
   render();
 }
 function secureToken() {
@@ -170,11 +144,7 @@ function secureToken() {
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 }
-let entries = [];
-try {
-  entries = JSON.parse(localStorage.getItem(storageKey) || "[]");
-  if (!Array.isArray(entries)) entries = [];
-} catch {}
+let entries = []; // In-memory sample mode only; reset on page reload.
 let day = "all",
   role = "all",
   onlyNeed = false;
@@ -215,9 +185,6 @@ function free(j, s, e, skip = null) {
   );
 }
 function save() {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify(entries));
-  } catch {}
   render();
 }
 function toast(t) {
@@ -263,7 +230,6 @@ function render() {
       })
       .join("") ||
     '<tr><td colspan="6" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
-  $("#mycount").textContent = entries.length;
   document.querySelectorAll("[data-day]").forEach(
     (b) =>
       (b.onclick = () => {
@@ -385,6 +351,7 @@ function openShift(id) {
       const option = j.subJobs.find((option) => option.id === id);
       return { id: option.id, label: option.label };
     });
+    const email = $("#email").value.trim();
     const entry = {
       id: Date.now(),
       job: id,
@@ -437,8 +404,6 @@ function openShift(id) {
         entry.id = outcome.bookingId;
         entry.subJobPreferences = outcome.subJobPreferences || preferences;
         entry.token = pending.manageToken;
-        if (!entries.some((p) => p.id === entry.id)) entries.push(entry);
-        save();
         await loadSchedule();
       } catch (error) {
         $("#error").textContent = error.message;
@@ -449,44 +414,34 @@ function openShift(id) {
       entries.push(entry);
       save();
     }
-    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${esc(j.name)}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · ${esc(j.location || "Canal Park")}</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p>${entry.subJobPreferences?.length ? `<p class="sub">Task preferences: ${entry.subJobPreferences.map((option) => esc(option.label)).join(", ")}</p>` : ""}<button class="primary full" id="done">Back to the board</button>`;
+    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${esc(j.name)}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · ${esc(j.location || "Canal Park")}</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p>${apiBase ? `<p class="sub">Confirmation email: ${esc(email)}</p><p><a class="primary" href="manage.html#${new URLSearchParams({ booking: entry.id, token: entry.token })}">View / change / cancel this signup</a></p>` : ""}${entry.subJobPreferences?.length ? `<p class="sub">Task preferences: ${entry.subJobPreferences.map((option) => esc(option.label)).join(", ")}</p>` : ""}<button class="primary full" id="done">Back to the board</button>`;
     closeWire();
     $("#done").onclick = () => modal.close();
   };
 }
-function manage() {
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>My signups</h2><p class="sub">Use your confirmation email to view or change a signup on another device.</p>${entries.length ? entries.map((p) => `<div class="manage-card"><strong>${esc(jobs.find((j) => String(j.id) === String(p.job)).name)}</strong><p>${days.find((x) => x[0] === jobs.find((j) => String(j.id) === String(p.job)).date)[1]} · ${fmt(p.start)}–${fmt(p.end)}</p><p class="sub">Board name: ${esc(p.publicName)}</p>${apiBase ? `<a href="manage.html#${new URLSearchParams({ booking: p.id, token: p.token })}">View or change signup</a> ` : ""}<button data-cancel="${p.id}">Cancel signup</button></div>`).join("") : "<p>No demo signups yet. Choose a shift on the board to join.</p>"}`;
+function findSignups() {
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>Find my signups</h2><p class="sub">Enter the email address used to sign up. We’ll email links for your active commitments.</p><form id="find-signups"><label for="recovery-email">Email</label><input id="recovery-email" type="email" autocomplete="email" required><p id="recovery-error" class="error" role="alert"></p><button class="primary full">Email my signup links</button></form><p class="sub">Need help with a mistyped address? <a href="mailto:batemapf@gmail.com">Contact the organizer</a>.</p>`;
   if (!modal.open) modal.showModal();
   closeWire();
-  modal.querySelectorAll("[data-cancel]").forEach(
-    (b) =>
-      (b.onclick = () => {
-        const id = b.dataset.cancel;
-        modal.innerHTML =
-          '<h2>Cancel this signup?</h2><p class="sub">Your place will reopen on the board.</p><button class="primary" id="yes">Yes, cancel</button> <button id="no">Keep signup</button>';
-        $("#no").onclick = manage;
-        $("#yes").onclick = async () => {
-          const entry = entries.find((p) => String(p.id) === String(id));
-          if (apiBase) {
-            try {
-              await api("/bookings/" + entry.id + "/cancel", {
-                method: "POST",
-                headers: { Authorization: "Bearer " + entry.token },
-                body: "{}",
-              });
-              await loadSchedule();
-            } catch (error) {
-              toast(error.message);
-              return;
-            }
-          }
-          entries = entries.filter((p) => String(p.id) !== String(id));
-          save();
-          manage();
-          toast("Signup canceled.");
-        };
-      }),
-  );
+  $("#find-signups").onsubmit = async (event) => {
+    event.preventDefault();
+    const button = $("#find-signups button");
+    button.disabled = true;
+    try {
+      if (apiBase)
+        await api("/recovery", {
+          method: "POST",
+          body: JSON.stringify({ email: $("#recovery-email").value.trim() }),
+        });
+      modal.innerHTML =
+        '<button class="close" aria-label="Close">×</button><h2>Check your email</h2><p>If that address has active signups, you’ll receive their links by email.</p><p class="sub">Check your spam folder if needed. For help, <a href="mailto:batemapf@gmail.com">contact the organizer</a>.</p><button id="recovery-done">Back to the board</button>';
+      closeWire();
+      $("#recovery-done").onclick = () => modal.close();
+    } catch (error) {
+      $("#recovery-error").textContent = error.message;
+      button.disabled = false;
+    }
+  };
 }
 $("#jobfilter").onchange = (e) => {
   role = e.target.value;
@@ -496,10 +451,10 @@ $("#need").onchange = (e) => {
   onlyNeed = e.target.checked;
   render();
 };
-$("#mine").onclick = manage;
+$("#mine").onclick = findSignups;
 $("#reset").onclick = () => {
   if (apiBase) {
-    toast("Use My signups to cancel your development bookings.");
+    toast("Use your confirmation email to manage your signup.");
     return;
   }
   entries = [];

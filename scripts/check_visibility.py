@@ -5,12 +5,12 @@ import urllib.request
 
 site = os.environ["SITE_URL"]
 api = os.environ["API_URL"]
-for path in ("/", "/organizer.html", "/assets/brent-bear.png"):
+for path in ("/", "/admin", "/admin/", "/organizer.html", "/assets/brent-bear.png"):
     with urllib.request.urlopen(site + path) as result:
         assert "noindex" in result.headers.get("X-Robots-Tag", ""), (
             "Missing CDN noindex on " + path
         )
-        if path.endswith(".html") or path == "/":
+        if path.endswith(".html") or path in ("/", "/admin", "/admin/"):
             content = result.read().decode()
             assert "2026 Brent Elementary Christmas Tree and Holiday Sale" in content
             assert 'name="robots"' in content and "noindex" in content

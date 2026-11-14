@@ -1,6 +1,6 @@
 # Organizer desk
 
-Development URL: https://dy2majdy4ufxo.cloudfront.net/organizer.html
+Organizer URL: https://volunteer.brentholidaysale.com/admin
 
 The page is publicly loadable, but all private data and organizer actions require a Cognito access token and membership in the `organizers` group. There is no public account registration. Volunteer signup remains account-free.
 

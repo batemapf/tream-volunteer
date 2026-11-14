@@ -6,6 +6,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     const context = await browser.newContext(),
       page = await context.newPage();
     await page.setViewportSize({ width: 390, height: 844 });
+    if (process.env.EMAIL_ACTION === "recover") {
+      await page.goto(process.env.SITE_URL);
+      await page
+        .getByRole("button", { name: "Find my signups", exact: true })
+        .click();
+      await page.locator("#recovery-email").fill("batemapf@gmail.com");
+      await page
+        .getByRole("button", { name: "Email my signup links", exact: true })
+        .click();
+      await page
+        .getByRole("heading", { name: "Check your email", exact: true })
+        .waitFor();
+      if (await page.evaluate(() => localStorage.getItem("tream-aws-manage")))
+        throw Error("Browser signup record should not persist");
+      console.log("PASS: public email recovery form from a fresh browser");
+      return;
+    }
     await page.goto(
       process.env.SITE_URL +
         "/manage.html#" +

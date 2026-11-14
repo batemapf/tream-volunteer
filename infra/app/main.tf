@@ -50,6 +50,16 @@ resource "aws_dynamodb_table" "data" {
     range_key       = "createdAt"
     projection_type = "ALL"
   }
+  attribute {
+    name = "contactHash"
+    type = "S"
+  }
+  global_secondary_index {
+    name            = "contactHash-createdAt"
+    hash_key        = "contactHash"
+    range_key       = "createdAt"
+    projection_type = "KEYS_ONLY"
+  }
   ttl {
     attribute_name = "expiresAt"
     enabled        = true
@@ -125,6 +135,10 @@ resource "aws_cloudfront_distribution" "web" {
     origin_access_control_id = aws_cloudfront_origin_access_control.web.id
   }
   default_cache_behavior {
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.routes.arn
+    }
     target_origin_id           = "web"
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
@@ -169,7 +183,7 @@ resource "aws_iam_role_policy" "api" {
     Version = "2012-10-17"
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:BatchGetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem", "dynamodb:ConditionCheckItem"], Resource = aws_dynamodb_table.data.arn },
-      { Effect = "Allow", Action = ["dynamodb:Query"], Resource = "${aws_dynamodb_table.data.arn}/index/recordType-createdAt" },
+      { Effect = "Allow", Action = ["dynamodb:Query"], Resource = ["${aws_dynamodb_table.data.arn}/index/recordType-createdAt", "${aws_dynamodb_table.data.arn}/index/contactHash-createdAt"] },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.api.arn}:*" }
     ]
   })
@@ -215,7 +229,7 @@ resource "aws_apigatewayv2_integration" "api" {
   payload_format_version = "2.0"
 }
 resource "aws_apigatewayv2_route" "routes" {
-  for_each  = toset(["GET /health", "GET /robots.txt", "GET /schedule", "POST /bookings", "GET /bookings/{id}", "POST /bookings/{id}/cancel", "POST /bookings/{id}/change", "POST /bookings/{id}/resend"])
+  for_each  = toset(["GET /health", "GET /robots.txt", "GET /schedule", "POST /bookings", "POST /recovery", "GET /bookings/{id}", "POST /bookings/{id}/cancel", "POST /bookings/{id}/change", "POST /bookings/{id}/resend"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"

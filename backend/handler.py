@@ -4,6 +4,7 @@ import os
 import time
 from domain import Problem
 from mail import enabled
+from recovery import recover
 from service import BookingService, public_shift
 from admin import AdminService, shift_rows
 
@@ -145,6 +146,15 @@ def handler(event, context):
             return response(200, service.managed(segments[1], token))
         if method == "POST":
             body = payload(event, headers)
+            if path == "/recovery":
+                return response(
+                    200,
+                    recover(
+                        store(),
+                        body.get("email"),
+                        event["requestContext"]["http"].get("sourceIp", "unknown"),
+                    ),
+                )
             if path == "/bookings":
                 return response(
                     200, service.batch(body.get("email"), body.get("selections"))

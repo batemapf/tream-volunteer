@@ -33,7 +33,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     }
   });
   try {
-    await page.goto(process.env.SITE_URL + "/organizer.html");
+    await page.goto(process.env.SITE_URL + "/admin");
     await page.locator("#username").fill(process.env.TREAM_TEST_USERNAME);
     await page.locator("#password").fill(process.env.TREAM_TEST_PASSWORD);
     await page.getByRole("button", { name: "Sign in", exact: true }).click();

@@ -104,24 +104,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
               { exact: true },
             )
             .waitFor();
-          await page
-            .getByRole("button", { name: "Back to the board", exact: true })
-            .click();
           const expectedName =
             width === 430 ? "Volunteer (name private)" : "Mobile T.";
           if (
-            !(await page.evaluate(
-              (expected) =>
-                JSON.parse(localStorage.getItem("tream-board-demo")).some(
-                  (entry) => entry.publicName === expected,
-                ),
-              expectedName,
-            ))
+            !(await page.locator("#modal").innerText()).includes(expectedName)
           )
             throw Error("Signup name visibility did not match privacy choice");
-          await page.reload();
           await page
-            .getByRole("button", { name: "Sat 05", exact: true })
+            .getByRole("button", { name: "Back to the board", exact: true })
             .click();
           const countAfter = await page
             .locator('.join[data-open="8"]')
@@ -133,15 +123,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
             /\d–\d/.test(countAfter)
           )
             throw Error("Partial signup should count as one whole volunteer");
-          await page.locator("#mine").click();
+          if (
+            await page.evaluate(
+              () =>
+                localStorage.getItem("tream-board-demo") ||
+                localStorage.getItem("tream-aws-manage"),
+            )
+          )
+            throw Error("Signups must not persist in browser storage");
           await page
-            .getByRole("button", { name: "Cancel signup", exact: true })
+            .getByRole("button", { name: "Find my signups", exact: true })
+            .click();
+          await page.locator("#recovery-email").fill("mobile@example.com");
+          await page
+            .getByRole("button", { name: "Email my signup links", exact: true })
             .click();
           await page
-            .getByRole("button", { name: "Yes, cancel", exact: true })
-            .click();
-          await page
-            .getByText("No demo signups yet.", { exact: false })
+            .getByRole("heading", { name: "Check your email", exact: true })
             .waitFor();
         }
       } else {
@@ -151,7 +149,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     }
     if (errors.length) throw Error(errors.join("\n"));
     console.log(
-      "PASS: no page overflow at 320–1440px, mobile signup actions visible with touch targets, mobile signup/cancel, and desktop spreadsheet preserved.",
+      "PASS: no page overflow at 320–1440px, mobile signup actions visible with touch targets, email-only recovery, no browser signup persistence, and desktop spreadsheet preserved.",
     );
   } finally {
     await browser.close();

@@ -191,3 +191,43 @@ class DynamoStore:
             raise Problem(
                 "Please wait five minutes before resending again.", "rate_limit", 429
             ) from None
+
+    def bookings_for_contact(self, hashed):
+        keys = []
+        cursor = None
+        while True:
+            args = {
+                "TableName": self.table,
+                "IndexName": "contactHash-createdAt",
+                "KeyConditionExpression": "contactHash = :contact",
+                "ExpressionAttributeValues": self.encode({":contact": hashed}),
+            }
+            if cursor:
+                args["ExclusiveStartKey"] = cursor
+            result = self.client.query(**args)
+            keys.extend(self.decode(row)["pk"] for row in result.get("Items", []))
+            cursor = result.get("LastEvaluatedKey")
+            if not cursor:
+                break
+        return [b for b in self.get_many(keys) if b]
+
+    def claim_recovery(self, email_hash, ip_hash, now):
+        rows = [("EMAIL#" + email_hash, 300), ("IP#" + ip_hash, 60)]
+        try:
+            self.transact(
+                [
+                    self.put_op(
+                        {
+                            "pk": "RECOVERYRATE#" + key,
+                            "nextAllowedAt": now + seconds,
+                            "expiresAt": now + 3600,
+                        },
+                        "attribute_not_exists(pk) OR nextAllowedAt <= :now",
+                        {":now": now},
+                    )
+                    for key, seconds in rows
+                ]
+            )
+            return True
+        except Contention:
+            return False
