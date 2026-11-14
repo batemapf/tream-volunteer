@@ -108,3 +108,7 @@ Booking, change and cancellation emails are enabled only for the owner's verifie
 ### Delivery feedback and suppression
 
 SES configuration-set feedback now reaches an EventBridge-triggered Lambda. Hard bounces and complaints create minimal hashed suppressions; mail checks them before sending. Transient failures are recorded without canceling bookings. Private failed-event queue and CloudWatch alarms are deployed. Real AWS simulator delivery/bounce/complaint checks passed (43612157859); see email-feedback.md. Alarm subscriptions and SES provider-side suppression retention cleanup remain before wider public delivery. Owner-only recipient restrictions remain.
+
+### Team email rollout
+
+At the owner’s request, transactional team-test email is enabled for real inboxes using volunteers@brentholidaysale.com and reply-to batemapf@gmail.com. Production SES access and authenticated domain setup are confirmed. Confirmation/change/cancel/resend retain suppression checks and scanner-safe private links. Prior disabled notifications are not replayed. Reserved CI email domains stay disabled. Operational inbox alerts are deferred behind enable_operations_alerts=false so missing SNS provisioning permissions do not block testing; broadcasts remain disabled. Deployment 43613372535 passed 45 unit checks and all live app checks.

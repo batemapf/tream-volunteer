@@ -15,7 +15,7 @@ Operations:
 - Suppression is automatic; do not repeatedly resend to a hard-bouncing address or an address that complained. A volunteer can correct their contact details with the organizer. Deliberate removal of a suppression requires owner review and, if applicable, removal from SES's suppression list too. No public suppression-removal endpoint exists.
 - The manually dispatched `Test SES bounce and complaint handling` workflow sends only to AWS's success/bounce/complaint simulator addresses, verifies real EventBridge feedback and suppression persistence, and removes its synthetic records. It does not email the owner or volunteers. Unit checks verify that suppressed recipients never reach SES and suppression-read errors fail closed.
 
-Public recipient delivery remains restricted to the owner inbox. This change does not open public email sending or enable organizer broadcasts. The existing confirmation/change/cancel workflow continues to use the same outbox and private management links.
+Transactional team-test delivery now accepts real volunteer inboxes; organizer broadcasts remain disabled. The existing confirmation/change/cancel workflow continues to use the same outbox and private management links.
 
 ## Verification — November 14, 2026
 
@@ -28,3 +28,5 @@ CloudWatch alarm/recovery actions target SNS topic `tream-dev-operations`, with 
 The owner must confirm the AWS SNS subscription in Gmail. Until confirmation, the topic cannot deliver email alerts. Deployment needs the additional narrowly scoped SNS permissions in `infra/bootstrap/deploy-alerts.json` on `tream-github-deploy`; no application runtime SNS permissions are required. After confirmation, validate one ALARM/recovery transition without breaking real delivery. An OK transition means the metric window is healthy; it does not prove a previously failed notification was replayed or a failed-event queue was drained.
 
 Alert rollout status: deployment 43612599011 was blocked specifically by `SNS:CreateTopic` on `tream-dev-operations`; the deployment role has no SNS provisioning permission. The final narrowly scoped policy is `infra/bootstrap/deploy-alerts.json`, to attach as an inline permissions policy to IAM role `tream-github-deploy`. The failed apply updated the contact-free failure metric/logging, but did not create an alert subscription. SES preflight 43612621256 separately confirmed production access, DKIM and custom MAIL FROM are all enabled/verified.
+
+Operational alerts are explicitly deferred: `enable_operations_alerts` defaults to false, leaving SNS resources unprovisioned and alarm actions empty. After the SNS deployment permission is added, set that variable true and confirm the owner subscription. This does not block team-test transactional delivery.

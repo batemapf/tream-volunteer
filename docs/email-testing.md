@@ -1,6 +1,6 @@
-# Owner-only SES email test
+# Transactional email testing
 
-The development API and mail worker use `batemapf@gmail.com` as From, Reply-To and the only allowed recipient. Both the worker's allowlist and its IAM SES recipient condition enforce that restriction. Other development addresses can book but do not receive email. SES remains in sandbox; no DNS changes are required for this test. Organizer broadcast drafts remain disabled.
+Current team-test mode sends transactional messages to real volunteer addresses from `Brent PTA Volunteers <volunteers@brentholidaysale.com>`, with replies directed to `batemapf@gmail.com`. SES production access, DKIM and custom MAIL FROM verification are enabled. Bounce/complaint suppression remains enforced. Reserved documentation/test domains used by CI do not receive mail. Organizer broadcast drafts remain disabled. The earlier owner-only test mode and its verification history below preceded this rollout.
 
 New booking, change and cancellation transactions each create a private notification record atomically with the signup change. Only new eligible records enter the `mailPending` index. Historical `OUTBOX#` / `pending_disabled` records are never replayed. The scheduled mail Lambda polls every minute, leases pending records, rate-limits delivery to the sandbox quota, retries transient errors up to five times, and records SES acceptance IDs. Failed or expired records stop retrying. SES acceptance is not proof of inbox delivery; check the real inbox/spam folder.
 
@@ -12,7 +12,7 @@ Changes preserve the booking ID and token, check the booking revision, and atomi
 
 The manually dispatched **Test owner email workflow** books a private-name sample on Saturday morning, waits for SES acceptance, checks read-only management-link visits, moves it to Saturday afternoon through the mobile management UI, waits for the update email, cancels through the mobile UI, and waits for the cancellation email. It leaves the test booking canceled and retains short-lived private delivery receipts. It sends three messages to the owner. Ordinary deployment checks do not send real mail.
 
-Before public email launch: verify a PTA-approved sender, obtain SES production access, connect owner-monitored failure alerts, complete retention cleanup for SES provider-side suppressions, add operator retry tools, and remove the test recipient restriction deliberately. Never enable historical disabled notifications.
+Before public email launch: verify a PTA-approved sender, obtain SES production access, connect owner-monitored failure alerts, complete retention cleanup for SES provider-side suppressions, add operator retry tools, and keep broader release and organizer broadcast sending deliberate. Never enable historical disabled notifications.
 
 ## Verified November 14, 2026
 
