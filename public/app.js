@@ -219,13 +219,9 @@ function render() {
       .map((j, index) => {
         const groupHeading =
           index === 0 || shown[index - 1].date !== j.date
-            ? `<tr class="day-divider"><th colspan="7" scope="rowgroup">${esc(days.find(([d]) => d === j.date)[1])}<span>${shown.filter((other) => other.date === j.date).length} shifts</span></th></tr>`
+            ? `<tr class="day-divider"><th colspan="6" scope="rowgroup">${esc(days.find(([d]) => d === j.date)[1])}<span>${shown.filter((other) => other.date === j.date).length} shifts</span></th></tr>`
             : "";
         const s = stats(j),
-          roster = people(j.id),
-          visible = roster.filter(
-            (p) => p.publicName !== "Volunteer (name private)",
-          ),
           label = s.min === s.max ? `${s.min}` : `${s.min}–${s.max}`,
           status =
             s.min >= j.capacity
@@ -233,19 +229,10 @@ function render() {
               : s.total === 0
                 ? ""
                 : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
-        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">On shift </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
-          s.total
-            ? `<button data-open="${j.id}">${visible
-                .slice(0, 3)
-                .map((p) => esc(p.publicName))
-                .join(
-                  ", ",
-                )}${roster.length > Math.min(3, visible.length) ? ` <span>+${roster.length - Math.min(3, visible.length)} more</span>` : ""}<br><span>${s.total} ${s.total === 1 ? "person" : "people"} signed up · see hours</span></button>`
-            : ""
-        }</td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
+        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">On shift </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
       })
       .join("") ||
-    '<tr><td colspan="7" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
+    '<tr><td colspan="6" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
   $("#mycount").textContent = entries.length;
   document.querySelectorAll("[data-day]").forEach(
     (b) =>
@@ -503,9 +490,9 @@ if (apiBase) {
   seed = [];
   render();
   $("#rows").innerHTML =
-    '<tr><td colspan="7">Loading shared schedule…</td></tr>';
+    '<tr><td colspan="6">Loading shared schedule…</td></tr>';
   loadSchedule().catch(() => {
     $("#rows").innerHTML =
-      '<tr><td colspan="7">Unable to load the board. Refresh to try again.</td></tr>';
+      '<tr><td colspan="6">Unable to load the board. Refresh to try again.</td></tr>';
   });
 }

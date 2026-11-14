@@ -60,6 +60,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
           throw Error(
             "Signup action is clipped or too small at " + width + "px",
           );
+        const title = await page
+          .locator('.job-title[data-open="8"]')
+          .boundingBox();
+        if (Math.abs(box.y - title.y) > 6 || box.x < title.x + title.width)
+          throw Error("Mobile action should sit beside the shift title");
+        if (await page.locator(".shift-row .people").count())
+          throw Error("Summary roster previews should be removed");
         if (width === 390 || width === 430) {
           await join.click();
           if (await page.locator("#share").isChecked())

@@ -92,3 +92,7 @@ Removed “Join this shift” from the signup form. Replaced the horizontally sc
 ### Signup copy, name visibility, and lot tasks
 
 Removed the form roster heading and private-name explanatory copy. New signups show first name and last initial by default; checking “Keep my name private on the board” opts out. Existing signup privacy remains unchanged. Lot task choices are Sales, Cashiering, Greenery Management, Lot Maintenance/Inventory Replenishment, and Tree Prep (Chainsaw/Baling/Loading). The schedule seed migrates only the exact original draft task list, preserving custom choices and existing booking records.
+
+### Compact shift summaries
+
+Removed name previews and the roster column from mobile cards and desktop spreadsheet summaries. Full rosters remain in shift details. Mobile actions sit beside the title, and coverage ends the card without an extra footer row.

@@ -708,7 +708,7 @@ form select {
   .volunteer-sheet .shift-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "job job" "time time" "coverage coverage" "people action";
+    grid-template-areas: "job action" "time time" "coverage coverage";
     background: #fff;
     border: 1px solid #d6decf;
     border-radius: 8px;
@@ -751,10 +751,9 @@ form select {
   }
   .volunteer-sheet .coverage {
     grid-area: coverage;
-    margin: 15px 0;
-    padding: 12px 0;
+    margin: 12px 0 0;
+    padding: 12px 0 0;
     border-top: 1px solid #e9ede2;
-    border-bottom: 1px solid #e9ede2;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
@@ -803,7 +802,7 @@ form select {
   }
   .volunteer-sheet td:last-child {
     grid-area: action;
-    align-self: center;
+    align-self: start;
   }
   .volunteer-sheet .join {
     font-size: 12px;
