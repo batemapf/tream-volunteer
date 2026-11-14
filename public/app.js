@@ -131,6 +131,36 @@ async function loadSchedule() {
   $("#jobfilter").value = role;
   if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
   seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
+  // Browser receipts are shortcuts; the authenticated booking remains authoritative.
+  entries = (
+    await Promise.all(
+      entries.map(async (entry) => {
+        try {
+          const current = await api(
+            "/bookings/" + encodeURIComponent(entry.id),
+            {
+              headers: { Authorization: "Bearer " + entry.token },
+            },
+          );
+          return current.status === "active"
+            ? {
+                ...entry,
+                job: current.shiftId,
+                start: current.start,
+                end: current.end,
+                publicName: current.publicName,
+                subJobPreferences: current.subJobPreferences || [],
+              }
+            : null;
+        } catch {
+          return entry;
+        }
+      }),
+    )
+  ).filter(Boolean);
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(entries));
+  } catch {}
   render();
 }
 function secureToken() {
