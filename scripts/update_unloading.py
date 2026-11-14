@@ -97,6 +97,12 @@ for attempt in range(8):
     old = store.get("SHIFT#1")
     if not old:
         raise RuntimeError("Unloading shift is missing")
+    if store.get("AUDIT#unloading-time-correction-2026"):
+        repair_disabled_notices()
+        print(
+            "Approved unloading correction already applied; later organizer edits preserved."
+        )
+        break
     if old["start"] == 16 and old["end"] == 18:
         assert all(
             16 <= r["start"] < r["end"] <= 18 for r in old["roster"]
