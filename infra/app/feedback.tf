@@ -98,8 +98,8 @@ resource "aws_cloudwatch_metric_alarm" "feedback_failures" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.operations.arn]
-  ok_actions          = [aws_sns_topic.operations.arn]
+  alarm_actions       = aws_sns_topic.operations[*].arn
+  ok_actions          = aws_sns_topic.operations[*].arn
 }
 resource "aws_cloudwatch_metric_alarm" "feedback_errors" {
   alarm_name          = "${local.name}-feedback-errors"
@@ -112,8 +112,8 @@ resource "aws_cloudwatch_metric_alarm" "feedback_errors" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.operations.arn]
-  ok_actions          = [aws_sns_topic.operations.arn]
+  alarm_actions       = aws_sns_topic.operations[*].arn
+  ok_actions          = aws_sns_topic.operations[*].arn
 }
 # The sale domain uses structured feedback instead of forwarded bounce emails.
 # Leave the shared Gmail identity's existing forwarding behavior untouched.

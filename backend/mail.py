@@ -1,4 +1,4 @@
-"""Private transactional outbox. Only explicitly allowlisted test inboxes receive mail."""
+"""Private transactional outbox with explicit test/public delivery modes."""
 
 import json
 import os
@@ -13,9 +13,25 @@ def enabled():
 
 
 def allowed(email):
-    return enabled() and email.lower() in os.environ.get(
-        "EMAIL_TEST_RECIPIENTS", ""
-    ).lower().split(",")
+    if not enabled():
+        return False
+    email = email.strip().lower()
+    if os.environ.get("EMAIL_DELIVERY_MODE") == "public":
+        domain = email.rsplit("@", 1)[-1]
+        # Reserved documentation/test domains are used by CI, never real inboxes.
+        reserved = (
+            "example.com",
+            "example.org",
+            "example.net",
+            "example",
+            "invalid",
+            "test",
+            "localhost",
+        )
+        return "@" in email and not any(
+            domain == item or domain.endswith("." + item) for item in reserved
+        )
+    return email in os.environ.get("EMAIL_TEST_RECIPIENTS", "").lower().split(",")
 
 
 def notification(booking, shift, kind, token=None, now=None):
@@ -73,7 +89,7 @@ def content(row):
             + link
             + "\n\nOpening this link does not change your signup. Keep this link private.\n\n"
         )
-    body += "Organized by Brent PTA.\nThis is a development test notification.\n"
+    body += "Organized by Brent PTA.\nThis is a test signup for team review.\n"
     return subject, body
 
 

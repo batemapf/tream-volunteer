@@ -186,7 +186,7 @@ resource "aws_lambda_function" "api" {
   memory_size      = 256
   timeout          = 25
   environment {
-    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "batemapf@gmail.com", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_TEST_RECIPIENTS = "batemapf@gmail.com" }
+    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "Brent PTA Volunteers <volunteers@brentholidaysale.com>", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_DELIVERY_MODE = "public" }
   }
   depends_on = [aws_iam_role_policy.api]
 }

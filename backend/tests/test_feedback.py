@@ -159,3 +159,26 @@ class WorkerSuppressionTests(unittest.TestCase):
                         final_updates[0]["ExpressionAttributeValues"][":status"],
                         "suppressed",
                     )
+
+
+class DeliveryModeTests(unittest.TestCase):
+    def test_public_mode_accepts_real_inboxes_but_excludes_ci_and_requires_enable(self):
+        import os
+        from unittest.mock import patch
+        from mail import allowed
+
+        with patch.dict(
+            os.environ, {"EMAIL_ENABLED": "true", "EMAIL_DELIVERY_MODE": "public"}
+        ):
+            self.assertTrue(allowed("parent@gmail.com"))
+            self.assertTrue(allowed("parent@school.edu"))
+            for address in (
+                "smoke@example.com",
+                "family@other.example.org",
+                "test@fixture.invalid",
+                "x@example.net",
+                "x@local.test",
+            ):
+                self.assertFalse(allowed(address))
+            with patch.dict(os.environ, {"EMAIL_ENABLED": "false"}):
+                self.assertFalse(allowed("parent@gmail.com"))

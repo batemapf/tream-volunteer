@@ -1,16 +1,24 @@
+variable "enable_operations_alerts" {
+  type        = bool
+  default     = false
+  description = "Enable after the deploy-alerts IAM policy is attached."
+}
 # Operational alerts use SNS independently of SES and the booking mail worker.
 resource "aws_sns_topic" "operations" {
-  name = "${local.name}-operations"
+  count = var.enable_operations_alerts ? 1 : 0
+  name  = "${local.name}-operations"
 }
 resource "aws_sns_topic_policy" "operations" {
-  arn = aws_sns_topic.operations.arn
+  count = var.enable_operations_alerts ? 1 : 0
+  arn   = aws_sns_topic.operations[0].arn
   policy = jsonencode({ Version = "2012-10-17", Statement = [{
-    Sid       = "CloudWatchAlarms", Effect = "Allow", Principal = { Service = "cloudwatch.amazonaws.com" }, Action = "sns:Publish", Resource = aws_sns_topic.operations.arn,
+    Sid       = "CloudWatchAlarms", Effect = "Allow", Principal = { Service = "cloudwatch.amazonaws.com" }, Action = "sns:Publish", Resource = aws_sns_topic.operations[0].arn,
     Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }, ArnLike = { "aws:SourceArn" = "arn:aws:cloudwatch:us-east-2:${data.aws_caller_identity.current.account_id}:alarm:tream-*" } }
   }] })
 }
 resource "aws_sns_topic_subscription" "operations" {
-  topic_arn = aws_sns_topic.operations.arn
+  count     = var.enable_operations_alerts ? 1 : 0
+  topic_arn = aws_sns_topic.operations[0].arn
   protocol  = "email"
   endpoint  = "batemapf@gmail.com"
 }
@@ -36,8 +44,8 @@ resource "aws_cloudwatch_metric_alarm" "mail_delivery_failures" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.operations.arn]
-  ok_actions          = [aws_sns_topic.operations.arn]
+  alarm_actions       = aws_sns_topic.operations[*].arn
+  ok_actions          = aws_sns_topic.operations[*].arn
 }
 resource "aws_cloudwatch_metric_alarm" "mail_worker_errors" {
   alarm_name          = "${local.name}-mail-worker-errors"
@@ -51,7 +59,7 @@ resource "aws_cloudwatch_metric_alarm" "mail_worker_errors" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.operations.arn]
-  ok_actions          = [aws_sns_topic.operations.arn]
+  alarm_actions       = aws_sns_topic.operations[*].arn
+  ok_actions          = aws_sns_topic.operations[*].arn
 }
-output "operations_alert_topic" { value = aws_sns_topic.operations.arn }
+output "operations_alert_topic" { value = one(aws_sns_topic.operations[*].arn) }
