@@ -99,6 +99,31 @@ print(
     )
 )
 
+nonautomated_ids = {r["id"] for r in bookings if not automated(r)}
+nonautomated_mail = [r for r in mail if r.get("bookingId") in nonautomated_ids]
+missing_receipts = [r for r in sent if r.get("messageId") not in confirmed]
+print(
+    json.dumps(
+        {
+            "nonAutomatedNotificationStates": dict(
+                Counter(r.get("status") for r in nonautomated_mail)
+            ),
+            "latestAcceptedWithoutReceiptUTC": (
+                datetime.fromtimestamp(
+                    max(r["createdAt"] for r in missing_receipts), timezone.utc
+                ).isoformat()
+                if missing_receipts
+                else None
+            ),
+            "acceptedWithReceiptCreatedUTC": [
+                datetime.fromtimestamp(r["createdAt"], timezone.utc).isoformat()
+                for r in sent
+                if r.get("messageId") in confirmed
+            ],
+        }
+    )
+)
+
 logs = boto3.client("logs")
 for function in ("api", "mail", "feedback"):
     group = "/aws/lambda/tream-dev-" + function
