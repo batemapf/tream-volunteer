@@ -469,7 +469,7 @@ $("#need").onchange = (e) => {
 $("#mine").onclick = manage;
 $("#reset").onclick = () => {
   if (apiBase) {
-    toast("Use My demo signups to cancel your development bookings.");
+    toast("Use My signups to cancel your development bookings.");
     return;
   }
   entries = [];
@@ -484,6 +484,7 @@ $("#reset").onclick = () => {
 render();
 
 if (apiBase) {
+  $("#reset").hidden = true;
   document.querySelector(".demo-label").textContent =
     "Development · shared test data";
   jobs = [];

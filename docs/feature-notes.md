@@ -100,3 +100,7 @@ Removed name previews and the roster column from mobile cards and desktop spread
 ### Event heading and signup totals
 
 Consolidated the public header into a single event H1 with date/location and explicit Brent PTA organizer attribution. Organizer masthead also identifies Brent PTA. Summary cards/table count each booking once, including partial attendance, and label this “Signed up”; the progress bar follows signup totals. Capacity enforcement, needs-help filtering, and organizer time coverage continue using actual attendance intervals.
+
+### Owner-only live email and rebooking
+
+Booking, change and cancellation emails are enabled only for the owner's verified SES inbox. Management links work across browsers without a login and never mutate on page visits. Volunteers can change shifts/hours atomically, cancel with confirmation, and resend from a working link. The real AWS/SES and mobile management workflow passed on November 14; see email-testing.md for receipt evidence, scope and remaining public-launch email work. Historical disabled outbox records remain disabled. Organizer broadcast drafts remain unsent.
