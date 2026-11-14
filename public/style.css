@@ -1148,3 +1148,13 @@ dialog {
     font-size: 13px;
   }
 }
+
+#management select,
+#management input:not([type="checkbox"]) {
+  font-size: 16px;
+  min-height: 44px;
+}
+#management button {
+  min-height: 44px;
+  margin: 4px 0;
+}

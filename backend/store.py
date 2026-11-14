@@ -122,22 +122,72 @@ class DynamoStore:
             ]
         )
 
-    def commit_cancel(self, old, new, booking, audit=None):
+    def commit_cancel(self, old, new, booking, audit=None, outbox=None):
         operations = [
             self.put_op(new, "revision = :revision", {":revision": old["revision"]}),
             {
                 "Update": {
                     "TableName": self.table,
                     "Key": self.encode({"pk": booking["pk"]}),
-                    "UpdateExpression": "SET #status = :canceled",
-                    "ConditionExpression": "#status = :active",
+                    "UpdateExpression": "SET #status = :canceled, cancelNotificationId = :notification",
+                    "ConditionExpression": "#status = :active AND shiftId = :shift AND (attribute_not_exists(revision) OR revision = :revision)",
                     "ExpressionAttributeNames": {"#status": "status"},
                     "ExpressionAttributeValues": self.encode(
-                        {":canceled": "canceled", ":active": "active"}
+                        {
+                            ":canceled": "canceled",
+                            ":active": "active",
+                            ":shift": booking["shiftId"],
+                            ":revision": booking.get("revision", 0),
+                            ":notification": outbox["id"] if outbox else "",
+                        }
                     ),
                 }
             },
         ]
+        if outbox:
+            operations.append(self.put_op(outbox, "attribute_not_exists(pk)"))
         if audit:
             operations.append(self.put_op(audit, "attribute_not_exists(pk)"))
         self.transact(operations)
+
+    def commit_change(self, changes, old_booking, booking, outbox):
+        operations = [
+            self.put_op(new, "revision = :revision", {":revision": old["revision"]})
+            for old, new in changes
+        ]
+        operations += [
+            self.put_op(
+                booking,
+                "#status = :active AND (attribute_not_exists(revision) OR revision = :revision)",
+                {":active": "active", ":revision": old_booking.get("revision", 0)},
+            )
+        ]
+        operations[-1]["Put"]["ExpressionAttributeNames"] = {"#status": "status"}
+        operations.append(self.put_op(outbox, "attribute_not_exists(pk)"))
+        self.transact(operations)
+
+    def queue_resend(self, booking, outbox, now):
+        try:
+            self.transact(
+                [
+                    {
+                        "Update": {
+                            "TableName": self.table,
+                            "Key": self.encode({"pk": booking["pk"]}),
+                            "UpdateExpression": "SET lastResendAt = :now",
+                            "ConditionExpression": "#status = :active AND (attribute_not_exists(lastResendAt) OR lastResendAt < :cutoff)",
+                            "ExpressionAttributeNames": {"#status": "status"},
+                            "ExpressionAttributeValues": self.encode(
+                                {":now": now, ":cutoff": now - 300, ":active": "active"}
+                            ),
+                        }
+                    },
+                    self.put_op(outbox, "attribute_not_exists(pk)"),
+                ]
+            )
+        except Contention:
+            from domain import Problem
+
+            raise Problem(
+                "Please wait five minutes before resending again.", "rate_limit", 429
+            ) from None

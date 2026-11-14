@@ -38,6 +38,7 @@ jobs:
           python3 -m unittest discover -s backend/tests -v
           node --check public/app.js
           node --check public/organizer.js
+          node --check public/manage.js
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.10.5
@@ -91,7 +92,7 @@ jobs:
             echo '## Development deployment'
             echo "- Board: ${SITE_URL}"
             echo "- API: ${API_URL}"
-            echo '- Shared development database; use sample details only. Email disabled.'
+            echo '- Shared development database. Email delivery restricted to the owner test inbox; organizer broadcast sending stays disabled.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise deployed API and clean up test data
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_aws.py

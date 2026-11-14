@@ -96,7 +96,7 @@ class MemoryStore:
             for row in (new, booking, idem, outbox):
                 self.rows[row["pk"]] = copy.deepcopy(row)
 
-    def commit_cancel(self, old, new, booking, audit=None):
+    def commit_cancel(self, old, new, booking, audit=None, outbox=None):
         with self.lock:
             if (
                 self.rows[old["pk"]]["revision"] != old["revision"]
@@ -105,8 +105,27 @@ class MemoryStore:
                 raise Contention()
             self.rows[new["pk"]] = copy.deepcopy(new)
             self.rows[booking["pk"]]["status"] = "canceled"
+            if outbox:
+                self.rows[outbox["pk"]] = copy.deepcopy(outbox)
             if audit:
                 self.rows[audit["pk"]] = copy.deepcopy(audit)
+
+    def commit_change(self, changes, old_booking, booking, outbox):
+        with self.lock:
+            saved = self.rows[old_booking["pk"]]
+            if (
+                saved["status"] != "active"
+                or saved.get("revision", 0) != old_booking.get("revision", 0)
+                or any(
+                    self.rows[old["pk"]]["revision"] != old["revision"]
+                    for old, new in changes
+                )
+            ):
+                raise Contention()
+            for old, new in changes:
+                self.rows[new["pk"]] = copy.deepcopy(new)
+            self.rows[booking["pk"]] = copy.deepcopy(booking)
+            self.rows[outbox["pk"]] = copy.deepcopy(outbox)
 
 
 class BookingTests(unittest.TestCase):

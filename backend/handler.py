@@ -3,6 +3,7 @@ import json
 import os
 import time
 from domain import Problem
+from mail import enabled
 from service import BookingService, public_shift
 from admin import AdminService, shift_rows
 
@@ -124,7 +125,8 @@ def handler(event, context):
             return result
         if method == "GET" and path == "/health":
             return response(
-                200, {"ok": True, "environment": "development", "emailEnabled": False}
+                200,
+                {"ok": True, "environment": "development", "emailEnabled": enabled()},
             )
         if method == "GET" and path == "/schedule":
             return response(
@@ -133,7 +135,7 @@ def handler(event, context):
                     "shifts": [
                         public_shift(s, time.time()) for s in shift_rows(store())
                     ],
-                    "emailEnabled": False,
+                    "emailEnabled": enabled(),
                 },
             )
         token = headers.get("authorization", "").removeprefix("Bearer ")
@@ -146,6 +148,18 @@ def handler(event, context):
                 return response(
                     200, service.batch(body.get("email"), body.get("selections"))
                 )
+            if (
+                len(segments) == 3
+                and segments[0] == "bookings"
+                and segments[2] == "resend"
+            ):
+                return response(200, service.resend(segments[1], token))
+            if (
+                len(segments) == 3
+                and segments[0] == "bookings"
+                and segments[2] == "change"
+            ):
+                return response(200, service.change(segments[1], token, body))
             if (
                 len(segments) == 3
                 and segments[0] == "bookings"

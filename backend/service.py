@@ -5,6 +5,7 @@ import hmac
 import re
 import time
 import uuid
+from mail import notification, enabled
 from domain import (
     Problem,
     effective_capacity,
@@ -109,14 +110,12 @@ class BookingService:
                 "result": result,
                 "expiresAt": shift["expiresAt"],
             }
-            # No outbound email in this development slice. Private outbox survives provider unavailability.
-            outbox = {
-                "pk": "OUTBOX#" + booking_id,
-                "bookingId": booking_id,
-                "kind": "confirmation",
-                "status": "pending_disabled",
-                "expiresAt": min(shift["expiresAt"], int(self.clock()) + 30 * 86400),
-            }
+            outbox = notification(
+                booking, shift, "confirmation", selection["manageToken"], self.clock()
+            )
+            result["notificationId"] = outbox["id"]
+            booking["revision"] = 0
+            booking["lastNotificationId"] = outbox["id"]
             try:
                 self.store.commit_booking(shift, new_shift, booking, idem, outbox)
                 return result
@@ -141,7 +140,7 @@ class BookingService:
                         "message": str(error),
                     }
                 )
-        return {"results": results, "emailEnabled": False}
+        return {"results": results, "emailEnabled": enabled()}
 
     def authorize(self, booking_id, token):
         if not re.fullmatch(r"[a-zA-Z0-9_-]{43}", token or ""):
@@ -162,9 +161,31 @@ class BookingService:
     def managed(self, booking_id, token):
         booking = self.authorize(booking_id, token)
         return {
-            k: booking[k]
-            for k in ("id", "shiftId", "start", "end", "publicName", "status")
+            "revision": booking.get("revision", 0),
+            **{
+                k: booking[k]
+                for k in (
+                    "id",
+                    "shiftId",
+                    "start",
+                    "end",
+                    "publicName",
+                    "status",
+                    "name",
+                    "subJobPreferences",
+                )
+                if k in booking
+            },
         }
+
+    def resend(self, booking_id, token):
+        booking = self.authorize(booking_id, token)
+        if booking["status"] != "active":
+            raise Problem("This signup is canceled.", "canceled", 409)
+        shift = self.store.get("SHIFT#" + booking["shiftId"])
+        row = notification(booking, shift, "confirmation", token, self.clock())
+        self.store.queue_resend(booking, row, int(self.clock()))
+        return {"queued": row["status"] == "pending"}
 
     def cancel(self, booking_id, token):
         for attempt in range(8):
@@ -178,11 +199,102 @@ class BookingService:
                 p for p in new_shift["roster"] if p["id"] != booking_id
             ]
             try:
-                self.store.commit_cancel(shift, new_shift, booking)
+                self.store.commit_cancel(
+                    shift,
+                    new_shift,
+                    booking,
+                    outbox=notification(
+                        booking, shift, "cancellation", now=self.clock()
+                    ),
+                )
                 return {"status": "canceled"}
             except Contention:
                 time.sleep(min(0.005 * 2**attempt, 0.1))
         raise Problem("The shift changed. Please retry.", "retry", 409)
+
+    def change(self, booking_id, token, raw):
+        request_id = raw.get("requestId")
+        if not isinstance(request_id, str) or not re.fullmatch(
+            r"[a-zA-Z0-9_-]{16,80}", request_id
+        ):
+            raise Problem("Invalid change identifier.")
+        for attempt in range(8):
+            booking = self.authorize(booking_id, token)
+            if booking.get("lastChangeId") == request_id:
+                return self.managed(booking_id, token)
+            if booking["status"] != "active":
+                raise Problem(
+                    "This signup is canceled. Choose a new shift on the board.",
+                    "canceled",
+                    409,
+                )
+            if type(raw.get("revision")) is not int or raw["revision"] != booking.get(
+                "revision", 0
+            ):
+                raise Problem(
+                    "This signup changed. Reload before editing.", "stale", 409
+                )
+            target_id = raw.get("shiftId")
+            if not isinstance(target_id, str) or len(target_id) > 80:
+                raise Problem("Choose a shift.")
+            source = self.store.get("SHIFT#" + booking["shiftId"])
+            target = self.store.get("SHIFT#" + target_id)
+            if (
+                not source
+                or not target
+                or not target.get("open")
+                or target["endAt"] <= self.clock()
+            ):
+                raise Problem("This shift is not accepting signups.", "closed", 409)
+            start, end = validate_interval(target, raw.get("start"), raw.get("end"))
+            preferences = task_preferences(target, raw)
+            available = copy.deepcopy(target)
+            available["roster"] = [
+                p for p in available["roster"] if p["id"] != booking_id
+            ]
+            if not fits(available, start, end) or len(available["roster"]) >= 300:
+                raise Problem(
+                    "That window is full. Your original signup is unchanged.",
+                    "full",
+                    409,
+                )
+            updated = {
+                **booking,
+                "shiftId": target_id,
+                "start": start,
+                "end": end,
+                "startAt": epoch(target["date"], start),
+                "endAt": epoch(target["date"], end),
+                "subJobPreferences": preferences,
+                "revision": booking.get("revision", 0) + 1,
+                "lastChangeId": request_id,
+            }
+            new_target = available
+            new_target["revision"] += 1
+            new_target["roster"].append(
+                {
+                    "id": booking_id,
+                    "start": start,
+                    "end": end,
+                    "publicName": booking["publicName"],
+                }
+            )
+            changes = [(target, new_target)]
+            if target_id != booking["shiftId"]:
+                new_source = copy.deepcopy(source)
+                new_source["revision"] += 1
+                new_source["roster"] = [
+                    p for p in source["roster"] if p["id"] != booking_id
+                ]
+                changes.append((source, new_source))
+            outbox = notification(updated, target, "changed", token, self.clock())
+            updated["lastNotificationId"] = outbox["id"]
+            try:
+                self.store.commit_change(changes, booking, updated, outbox)
+                return self.managed(booking_id, token)
+            except Contention:
+                time.sleep(0.01)
+        raise Problem("The schedule changed. Please retry.", "retry", 409)
 
 
 def public_shift(shift, now):

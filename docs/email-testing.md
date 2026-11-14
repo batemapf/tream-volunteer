@@ -1,0 +1,15 @@
+# Owner-only SES email test
+
+The development API and mail worker use `batemapf@gmail.com` as From, Reply-To and the only allowed recipient. Both the worker's allowlist and its IAM SES recipient condition enforce that restriction. Other development addresses can book but do not receive email. SES remains in sandbox; no DNS changes are required for this test. Organizer broadcast drafts remain disabled.
+
+New booking, change and cancellation transactions each create a private notification record atomically with the signup change. Only new eligible records enter the `mailPending` index. Historical `OUTBOX#` / `pending_disabled` records are never replayed. The scheduled mail Lambda polls every minute, leases pending records, rate-limits delivery to the sandbox quota, retries transient errors up to five times, and records SES acceptance IDs. Failed or expired records stop retrying. SES acceptance is not proof of inbox delivery; check the real inbox/spam folder.
+
+The worker uses a separate runtime role. The API cannot send email. Sending is at least once: a crash after SES accepts a message but before the receipt is saved may cause a duplicate on retry. Raw link tokens exist only in private DynamoDB SSE-encrypted outbox payloads until send/final failure, then are removed along with name/email snapshots; unsent payloads expire after seven days. Booking records retain only a token hash. Backups can retain earlier outbox payloads for their configured one-day recovery window.
+
+Management links use a fragment (not a query string), a 256-bit secret, no referrer, no analytics and no caching of private API responses. Opening the page only reads the signup. Changing and canceling require explicit POST actions. Cancellation prevents subsequent changes. Rate-limited confirmation resend is available from a working management link. A public lost-link recovery form is still future work.
+
+Changes preserve the booking ID and token, check the booking revision, and atomically release the old slot and claim the new one. A full destination leaves the original booking intact. Retrying the same change ID does not duplicate changes or notifications. Shared-email overlap review remains advisory.
+
+The manually dispatched **Test owner email workflow** books a private-name sample on Saturday morning, waits for SES acceptance, checks read-only management-link visits, moves it to Saturday afternoon through the mobile management UI, waits for the update email, cancels through the mobile UI, and waits for the cancellation email. It leaves the test booking canceled and retains short-lived private delivery receipts. It sends three messages to the owner. Ordinary deployment checks do not send real mail.
+
+Before public email launch: verify a PTA-approved sender, obtain SES production access, add delivery/bounce/complaint event handling and suppression, configure alarms/operator retry tools, and remove the test recipient restriction deliberately. Never enable historical disabled notifications.

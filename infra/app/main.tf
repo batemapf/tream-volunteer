@@ -186,7 +186,7 @@ resource "aws_lambda_function" "api" {
   memory_size      = 256
   timeout          = 25
   environment {
-    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin }
+    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "batemapf@gmail.com", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_TEST_RECIPIENTS = "batemapf@gmail.com" }
   }
   depends_on = [aws_iam_role_policy.api]
 }
@@ -207,7 +207,7 @@ resource "aws_apigatewayv2_integration" "api" {
   payload_format_version = "2.0"
 }
 resource "aws_apigatewayv2_route" "routes" {
-  for_each  = toset(["GET /health", "GET /robots.txt", "GET /schedule", "POST /bookings", "GET /bookings/{id}", "POST /bookings/{id}/cancel"])
+  for_each  = toset(["GET /health", "GET /robots.txt", "GET /schedule", "POST /bookings", "GET /bookings/{id}", "POST /bookings/{id}/cancel", "POST /bookings/{id}/change", "POST /bookings/{id}/resend"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"

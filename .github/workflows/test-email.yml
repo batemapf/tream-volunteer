@@ -1,0 +1,41 @@
+name: Test owner email workflow
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tream-real-email-test
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+      SITE_URL: https://dy2majdy4ufxo.cloudfront.net
+      API_URL: https://saocxbe6xa.execute-api.us-east-2.amazonaws.com
+      PLAYWRIGHT_MODULE: /tmp/tream-browser/node_modules/playwright
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/tream-playwright
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install test tooling
+        run: |
+          python3 -m venv /tmp/tream-test
+          /tmp/tream-test/bin/pip install 'boto3>=1.35,<2'
+          npm install --prefix /tmp/tream-browser --no-audit --no-fund playwright@1.56.1
+          /tmp/tream-browser/node_modules/.bin/playwright install chromium --only-shell
+      - name: Book, notify, rebook, notify, cancel, notify
+        run: /tmp/tream-test/bin/python scripts/smoke_email.py
+      - name: Mail worker diagnostics on failure
+        if: failure()
+        run: aws logs tail /aws/lambda/tream-dev-mail --since 20m --format short

@@ -1,5 +1,6 @@
 """Organizer operations. HTTP handlers require a validated organizer access token."""
 
+from mail import notification
 import copy
 import csv
 import hashlib
@@ -373,7 +374,13 @@ class AdminService:
             new["roster"] = [p for p in new["roster"] if p["id"] != id]
             audit = self.audit("booking_canceled", id, {}, booking["expiresAt"])
             try:
-                self.store.commit_cancel(old, new, booking, audit=audit)
+                self.store.commit_cancel(
+                    old,
+                    new,
+                    booking,
+                    audit=audit,
+                    outbox=notification(booking, old, "cancellation", now=self.clock()),
+                )
                 return {"status": "canceled", "emailEnabled": False}
             except Contention:
                 time.sleep(0.01)

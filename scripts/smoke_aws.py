@@ -70,7 +70,7 @@ def book(items):
 
 
 try:
-    assert call("GET", "/health")["emailEnabled"] is False
+    assert isinstance(call("GET", "/health")["emailEnabled"], bool)
     before = call("GET", "/schedule")
     assert before["shifts"], "Schedule not seeded"
     valid = selection("8", start=9, end=11, subJobs=["cashier", "tree-prep"])
