@@ -43,3 +43,9 @@ The sale site's Fjalla One heading font is also hosted locally. It is distribute
 These are crawler directives, not a guarantee against indexing, screenshots, link sharing or bots that ignore them. The site remains public, as requested. Existing search listings can take time to disappear after recrawl. Changes apply to the AWS application, not the separate original holiday-sale store or legacy browser-local Sites prototype.
 
 Reference: https://developers.google.com/search/docs/crawling-indexing/block-indexing
+
+## Deployment verification
+
+Verified release: https://github.com/batemapf/tream-volunteer/actions/runs/43596194272
+
+Passed 35 unit tests, live booking/preference persistence and privacy checks, organizer/browser regression checks, mobile signup with two optional task selections, and live HTML/CDN/API crawler-header checks. The requested page title, bear asset and robots.txt were verified on the deployed site. Existing schedule choices were preserved; missing lot-task choices received the initial configured defaults.
