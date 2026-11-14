@@ -212,20 +212,36 @@ class DynamoStore:
         return [b for b in self.get_many(keys) if b]
 
     def claim_recovery(self, email_hash, ip_hash, now):
-        rows = [("EMAIL#" + email_hash, 300), ("IP#" + ip_hash, 60)]
         try:
             self.transact(
                 [
                     self.put_op(
                         {
-                            "pk": "RECOVERYRATE#" + key,
-                            "nextAllowedAt": now + seconds,
+                            "pk": "RECOVERYRATE#EMAIL#" + email_hash,
+                            "nextAllowedAt": now + 300,
                             "expiresAt": now + 3600,
                         },
                         "attribute_not_exists(pk) OR nextAllowedAt <= :now",
                         {":now": now},
-                    )
-                    for key, seconds in rows
+                    ),
+                    {
+                        "Update": {
+                            "TableName": self.table,
+                            "Key": self.encode(
+                                {
+                                    "pk": "RECOVERYRATE#IP#"
+                                    + ip_hash
+                                    + "#"
+                                    + str(now // 60)
+                                }
+                            ),
+                            "UpdateExpression": "SET expiresAt = :expiry ADD requestCount :one",
+                            "ConditionExpression": "attribute_not_exists(requestCount) OR requestCount < :limit",
+                            "ExpressionAttributeValues": self.encode(
+                                {":expiry": now + 3600, ":one": 1, ":limit": 10}
+                            ),
+                        }
+                    },
                 ]
             )
             return True

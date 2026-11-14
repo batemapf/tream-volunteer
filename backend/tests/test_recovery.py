@@ -21,13 +21,14 @@ class RecoveryStore(MemoryStore):
         ]
 
     def claim_recovery(self, hashed, ip, now):
+        ip_key = "ip:" + ip + ":" + str(now // 60)
         if (
             self.rates.get("email:" + hashed, 0) > now
-            or self.rates.get("ip:" + ip, 0) > now
+            or self.rates.get(ip_key, 0) >= 10
         ):
             return False
         self.rates["email:" + hashed] = now + 300
-        self.rates["ip:" + ip] = now + 60
+        self.rates[ip_key] = self.rates.get(ip_key, 0) + 1
         return True
 
 
@@ -104,3 +105,8 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(
             self.store.get("BOOKING#" + self.a["bookingId"])["status"], "canceled"
         )
+
+    def test_shared_network_allows_different_household_recovery(self):
+        self.request()
+        self.request("other@gmail.com")
+        self.assertEqual(len(self.summaries()), 2)
