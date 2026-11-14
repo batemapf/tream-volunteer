@@ -64,12 +64,14 @@ for row in rows:
                     {
                         ":options": sub_jobs,
                         ":one": 1,
-                        ":original": [
-                            {"id": "cashier", "label": "Cashier"},
-                            {"id": "chainsaw", "label": "Chainsaw"},
-                            {"id": "sales", "label": "Sales"},
-                            {"id": "loading", "label": "Loading"},
-                        ],
+                        ":original": normalize_sub_jobs(
+                            [
+                                {"id": "cashier", "label": "Cashier"},
+                                {"id": "chainsaw", "label": "Chainsaw"},
+                                {"id": "sales", "label": "Sales"},
+                                {"id": "loading", "label": "Loading"},
+                            ]
+                        ),
                     }
                 ),
             )
