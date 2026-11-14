@@ -1082,3 +1082,9 @@ form .task-choice {
 dialog {
   background: #fff;
 }
+
+@media (max-width: 900px) {
+  .volunteer-sheet .sheet-bottom {
+    display: none;
+  }
+}

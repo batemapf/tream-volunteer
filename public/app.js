@@ -243,7 +243,7 @@ function render() {
             s.min >= j.capacity
               ? "Covered"
               : s.total === 0
-                ? "Be the first to join"
+                ? ""
                 : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
         return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">On shift </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td class="people">${
           s.total
@@ -253,15 +253,13 @@ function render() {
                 .join(
                   ", ",
                 )}${roster.length > Math.min(3, visible.length) ? ` <span>+${roster.length - Math.min(3, visible.length)} more</span>` : ""}<br><span>${s.total} ${s.total === 1 ? "person" : "people"} signed up · see hours</span></button>`
-            : '<span class="empty">No one yet — bring a friend?</span>'
+            : ""
         }</td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
       })
       .join("") ||
     '<tr><td colspan="7" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
   $("#days").scrollLeft = dayScroll;
   requestAnimationFrame(revealSelectedDay);
-  $("#rowcount").textContent =
-    `${shown.length} shifts · coverage counts people present at each time`;
   $("#mycount").textContent = entries.length;
   document.querySelectorAll("[data-day]").forEach(
     (b) =>
@@ -339,7 +337,7 @@ function openShift(id) {
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : '<p class="sub">No one has joined yet. You could get this crew started.</p>'}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
