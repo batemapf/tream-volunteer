@@ -1,0 +1,29 @@
+name: Read-only operational health
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install read-only inspection tooling
+        run: |
+          python3 -m venv /tmp/tream-health
+          /tmp/tream-health/bin/pip install 'boto3>=1.35,<2'
+      - name: Inspect aggregate activity, delivery, logs and alarms
+        run: /tmp/tream-health/bin/python scripts/operations_health.py
