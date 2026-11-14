@@ -1092,3 +1092,59 @@ dialog {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
+
+/* One event heading, with PTA ownership and practical details underneath. */
+.event-header {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+.event-bear {
+  width: 72px;
+  height: auto;
+}
+.event-heading {
+  min-width: 0;
+}
+.event-heading h1 {
+  font-size: 30px;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  max-width: 800px;
+}
+.event-heading p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 2px 0;
+}
+.volunteer-main .intro {
+  margin-bottom: 14px;
+}
+@media (max-width: 600px) {
+  .event-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 20px 16px;
+  }
+  .event-bear {
+    width: 56px;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .event-header #mine {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .event-heading {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .event-heading h1 {
+    font-size: 28px;
+  }
+  .event-heading p {
+    font-size: 13px;
+  }
+}

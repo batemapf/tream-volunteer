@@ -96,3 +96,7 @@ Removed the form roster heading and private-name explanatory copy. New signups s
 ### Compact shift summaries
 
 Removed name previews and the roster column from mobile cards and desktop spreadsheet summaries. Full rosters remain in shift details. Mobile actions sit beside the title, and coverage ends the card without an extra footer row.
+
+### Event heading and signup totals
+
+Consolidated the public header into a single event H1 with date/location and explicit Brent PTA organizer attribution. Organizer masthead also identifies Brent PTA. Summary cards/table count each booking once, including partial attendance, and label this “Signed up”; the progress bar follows signup totals. Capacity enforcement, needs-help filtering, and organizer time coverage continue using actual attendance intervals.

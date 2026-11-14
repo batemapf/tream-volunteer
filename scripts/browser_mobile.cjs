@@ -19,6 +19,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth > innerWidth,
       );
+      if ((await page.locator("h1").count()) !== 1)
+        throw Error("Expected one event heading");
+      await page
+        .getByText("Volunteer signup · Organized by Brent PTA", { exact: true })
+        .waitFor();
       if (overflow)
         throw Error("Page overflows horizontally at " + width + "px");
       if (width <= 900) {
@@ -68,6 +73,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
         if (await page.locator(".shift-row .people").count())
           throw Error("Summary roster previews should be removed");
         if (width === 390 || width === 430) {
+          const countBefore = Number(
+            (
+              await join
+                .locator("xpath=ancestor::tr")
+                .locator(".coverage strong")
+                .innerText()
+            ).match(/\d+/)[0],
+          );
           await join.click();
           if (await page.locator("#share").isChecked())
             throw Error("Name sharing should be the default");
@@ -106,6 +119,20 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
             ))
           )
             throw Error("Signup name visibility did not match privacy choice");
+          await page.reload();
+          await page
+            .getByRole("button", { name: "Sat 05", exact: true })
+            .click();
+          const countAfter = await page
+            .locator('.join[data-open="8"]')
+            .locator("xpath=ancestor::tr")
+            .locator(".coverage strong")
+            .innerText();
+          if (
+            Number(countAfter.match(/\d+/)[0]) !== countBefore + 1 ||
+            /\d–\d/.test(countAfter)
+          )
+            throw Error("Partial signup should count as one whole volunteer");
           await page.locator("#mine").click();
           await page
             .getByRole("button", { name: "Cancel signup", exact: true })

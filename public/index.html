@@ -13,22 +13,23 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header>
-      <a href="./" class="brand brent-brand"
-        ><img
-          src="assets/brent-bear.png"
-          alt="Brent bear"
-          width="90"
-          height="50"
-        /><span>Brent Elementary<small>Holiday sale volunteers</small></span></a
-      ><button id="mine">My signups <span id="mycount">0</span></button>
+    <header class="event-header">
+      <img
+        class="event-bear"
+        src="assets/brent-bear.png"
+        alt="Brent bear"
+        width="90"
+        height="50"
+      />
+      <div class="event-heading">
+        <h1>2026 Brent Elementary Christmas Tree and Holiday Sale</h1>
+        <p>December 2–6, 2026 · Canal Park</p>
+        <p>Volunteer signup · Organized by Brent PTA</p>
+      </div>
+      <button id="mine">My signups <span id="mycount">0</span></button>
     </header>
     <main class="volunteer-main">
       <div class="intro">
-        <div>
-          <p class="eyebrow">DECEMBER 2–6, 2026 · CANAL PARK</p>
-          <h1>2026 Brent Elementary Christmas Tree and Holiday Sale</h1>
-        </div>
         <span class="demo-label">Prototype · sample volunteers</span>
       </div>
       <section
@@ -59,7 +60,7 @@
         <div class="table-wrap">
           <table>
             <caption class="sr">
-              Volunteer shifts and staffing coverage
+              Volunteer shifts and signup counts
             </caption>
             <thead>
               <tr>
@@ -67,7 +68,7 @@
                 <th>Day</th>
                 <th>Job</th>
                 <th>Time</th>
-                <th>Coverage</th>
+                <th>Signed up</th>
                 <th><span class="sr">Sign up</span></th>
               </tr>
             </thead>
@@ -77,7 +78,7 @@
         <div class="sheet-bottom">
           <span
             ><i class="dot amber"></i> Help needed
-            <i class="dot green"></i> Covered</span
+            <i class="dot green"></i> Target reached</span
           >
         </div>
       </section>

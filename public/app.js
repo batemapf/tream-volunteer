@@ -222,14 +222,14 @@ function render() {
             ? `<tr class="day-divider"><th colspan="6" scope="rowgroup">${esc(days.find(([d]) => d === j.date)[1])}<span>${shown.filter((other) => other.date === j.date).length} shifts</span></th></tr>`
             : "";
         const s = stats(j),
-          label = s.min === s.max ? `${s.min}` : `${s.min}–${s.max}`,
+          label = `${s.total}`,
           status =
-            s.min >= j.capacity
-              ? "Covered"
+            s.total >= j.capacity
+              ? "Target reached"
               : s.total === 0
                 ? ""
-                : `${j.capacity - s.min} needed${s.min !== s.max ? " at some times" : ""}`;
-        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.min >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">On shift </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.min / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
+                : `${j.capacity - s.total} more to reach target`;
+        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.total >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">Signed up </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.total / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
       })
       .join("") ||
     '<tr><td colspan="6" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
