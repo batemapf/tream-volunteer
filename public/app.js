@@ -144,8 +144,7 @@ function secureToken() {
     .replace(/=+$/, "");
 }
 let entries = []; // In-memory sample mode only; reset on page reload.
-let day = "all",
-  onlyNeed = false;
+let day = "all";
 function people(id) {
   return [
     ...seed.filter((p) => p.job === id),
@@ -191,11 +190,7 @@ function toast(t) {
   setTimeout(() => ($("#toast").style.display = "none"), 3000);
 }
 function render() {
-  const shown = jobs.filter(
-    (j) =>
-      (day === "all" || day === j.date) &&
-      (!onlyNeed || stats(j).min < j.capacity),
-  );
+  const shown = jobs.filter((j) => day === "all" || day === j.date);
   $("#days").innerHTML = [
     ["all", "All days"],
     ...days.map(([d, l]) => [
@@ -217,13 +212,18 @@ function render() {
             : "";
         const s = stats(j),
           label = `${s.total}`,
+          full = !hasSpace(j),
           status =
-            s.total >= j.capacity
-              ? "Target reached"
-              : s.total === 0
-                ? ""
-                : `${j.capacity - s.total} more to reach target`;
-        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.total >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">Signed up </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.total / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td><button class="join" data-open="${j.id}">${s.min >= j.capacity ? "View shift" : "View & join →"}</button></td></tr>`;
+            j.open === false
+              ? "Closed"
+              : full
+                ? "Full"
+                : s.total >= j.capacity
+                  ? "Target reached"
+                  : s.total === 0
+                    ? ""
+                    : `${j.capacity - s.total} more to reach target`;
+        return `${groupHeading}<tr class="shift-row"><td class="number">${jobs.indexOf(j) + 1}</td><td class="day">${days.find((x) => x[0] === j.date)[1].split(",")[0]}<small>${new Date(j.date + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric" })}</small></td><td class="job"><button class="job-title" data-open="${j.id}">${esc(j.name)}</button><small>${j.flex ? "Partial shifts welcome" : "Full crew window required"}</small></td><td class="time">${fmt(j.start)}–${fmt(j.end)}</td><td class="coverage ${s.total >= j.capacity ? "covered" : ""}"><strong><span class="mobile-label">Signed up </span>${label} / ${j.capacity}</strong><div class="track"><span style="width:${Math.min(100, (s.total / j.capacity) * 100)}%"></span></div><small>${status}</small></td><td><button class="join" data-open="${j.id}">${j.open === false || full ? "View shift" : "View & join →"}</button></td></tr>`;
       })
       .join("") ||
     '<tr><td colspan="6" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
@@ -264,6 +264,13 @@ function validEnds(j, start) {
       (end - start) * 60 <= (j.attendance?.maxMinutes ?? 1440) + 0.00001,
   );
 }
+function hasSpace(j) {
+  if (stats(j).min >= (j.effectiveCapacity ?? j.capacity)) return false;
+  if (!j.flex) return free(j, j.start, j.end);
+  return candidateTimes(j, "start").some((start) =>
+    validEnds(j, start).some((end) => free(j, start, end)),
+  );
+}
 function options(j, val, kind = "end") {
   let values = candidateTimes(j, kind);
   if (!j.flex) values = [kind === "start" ? j.start : j.end];
@@ -302,11 +309,11 @@ function openShift(id) {
   id = j.id;
   let pending = null;
   const roster = people(id),
-    s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Volunteer name</label><input id="name" placeholder="Full name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40" required><label class="check consent"><input id="share" type="checkbox"><span>Keep my name private on the board.</span></label><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+    full = !hasSpace(j);
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || full ? `<div class="summary">${j.open === false ? "This shift is closed." : "This shift is full."}</div><button class="primary full" disabled>Sign up</button>` : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Volunteer name</label><input id="name" placeholder="Full name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40" required><label class="check consent"><input id="share" type="checkbox"><span>Keep my name private on the board.</span></label><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
-  if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
+  if (j.open === false || full) return;
   if (j.flex) {
     const updateEnds = () => {
       const preferred = Number($("#end").value),
@@ -322,6 +329,16 @@ function openShift(id) {
     $("#start").onchange = updateEnds;
     updateEnds();
   }
+  const updateAvailability = () => {
+    const available = free(j, +$("#start").value, +$("#end").value);
+    $("#signup .primary").disabled = !available;
+    $("#error").textContent = available
+      ? ""
+      : "That time window is full. Choose different hours.";
+  };
+  $("#start").addEventListener("change", updateAvailability);
+  $("#end").addEventListener("change", updateAvailability);
+  updateAvailability();
   $("#signup").onsubmit = async (e) => {
     e.preventDefault();
     const start = +$("#start").value,
@@ -441,10 +458,6 @@ function findSignups() {
     }
   };
 }
-$("#need").onchange = (e) => {
-  onlyNeed = e.target.checked;
-  render();
-};
 $("#mine").onclick = findSignups;
 render();
 

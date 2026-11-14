@@ -71,9 +71,70 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       )
     )
       throw Error("Edited location was not shown");
+    await page.locator("#modal .close").click();
+    shift.name = "Capacity fixture";
+    shift.capacity = 1;
+    shift.effectiveCapacity = 1;
+    shift.attendance = { incrementMinutes: 30, minMinutes: 30 };
+    shift.roster = [{ publicName: "Volunteer", start: 9, end: 10 }];
+    await page.reload();
+    await page
+      .locator(".coverage small")
+      .getByText("Full", { exact: true })
+      .waitFor();
+    await page.getByRole("button", { name: "View shift", exact: true }).click();
+    if (
+      !(await page
+        .getByRole("button", { name: "Sign up", exact: true })
+        .isDisabled())
+    )
+      throw Error("Full shift signup must be disabled");
+    shift.roster[0].end = 9.5;
+    await page.reload();
+    await page
+      .getByRole("button", { name: "View & join →", exact: true })
+      .click();
+    if (
+      !(await page
+        .getByRole("button", { name: "Sign up", exact: true })
+        .isDisabled())
+    )
+      throw Error("Full selected window must be disabled");
+    await page.locator("#start").selectOption("9.5");
+    if (
+      await page
+        .getByRole("button", { name: "Sign up", exact: true })
+        .isDisabled()
+    )
+      throw Error("Available partial window should remain bookable");
+    shift.roster[0].end = 10;
+    shift.effectiveCapacity = 2;
+    await page.reload();
+    await page
+      .getByRole("button", { name: "View & join →", exact: true })
+      .click();
+    if (
+      await page
+        .getByRole("button", { name: "Sign up", exact: true })
+        .isDisabled()
+    )
+      throw Error("Configured overflow must remain bookable");
+    shift.effectiveCapacity = 1;
+    shift.flex = false;
+    shift.roster[0].end = 9.5;
+    await page.reload();
+    await page.getByRole("button", { name: "View shift", exact: true }).click();
+    if (
+      !(await page
+        .getByRole("button", { name: "Sign up", exact: true })
+        .isDisabled())
+    )
+      throw Error("Fixed shifts must fit the entire window");
+    if (await page.locator("#need").count())
+      throw Error("Needs-help filter should be removed");
     if (errors.length) throw Error(errors.join("\n"));
     console.log(
-      "PASS: public board handles edited dates/roles, literal text, location and exact five-minute attendance choices.",
+      "PASS: public board handles edited dates/roles, literal text, location and exact five-minute attendance choices, full-shift blocking, partial-window availability and configured overflow.",
     );
   } finally {
     await browser.close();
