@@ -194,20 +194,7 @@ function toast(t) {
   $("#toast").style.display = "block";
   setTimeout(() => ($("#toast").style.display = "none"), 3000);
 }
-function revealSelectedDay() {
-  if (!window.matchMedia("(max-width:900px)").matches) return;
-  const tabs = $("#days"),
-    active = tabs.querySelector('[aria-pressed="true"]');
-  if (!active) return;
-  const parent = tabs.getBoundingClientRect(),
-    item = active.getBoundingClientRect();
-  if (item.left < parent.left) tabs.scrollLeft -= parent.left - item.left + 4;
-  if (item.right > parent.right)
-    tabs.scrollLeft += item.right - parent.right + 4;
-}
-window.addEventListener("resize", revealSelectedDay);
 function render() {
-  const dayScroll = $("#days").scrollLeft;
   const shown = jobs.filter(
     (j) =>
       (day === "all" || day === j.date) &&
@@ -258,8 +245,6 @@ function render() {
       })
       .join("") ||
     '<tr><td colspan="7" style="text-align:center;padding:40px">No shifts match these filters.</td></tr>';
-  $("#days").scrollLeft = dayScroll;
-  requestAnimationFrame(revealSelectedDay);
   $("#mycount").textContent = entries.length;
   document.querySelectorAll("[data-day]").forEach(
     (b) =>
@@ -337,7 +322,7 @@ function openShift(id) {
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;

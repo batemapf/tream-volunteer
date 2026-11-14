@@ -22,6 +22,37 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       if (overflow)
         throw Error("Page overflows horizontally at " + width + "px");
       if (width <= 900) {
+        const dates = await page
+          .locator("#days button")
+          .evaluateAll((buttons) =>
+            buttons.map((button) => {
+              const rect = button.getBoundingClientRect();
+              return {
+                left: rect.left,
+                right: rect.right,
+                width: rect.width,
+                height: rect.height,
+              };
+            }),
+          );
+        if (
+          dates.length !== 6 ||
+          dates.some(
+            (box) => box.left < 0 || box.right > width || box.height < 44,
+          )
+        )
+          throw Error(
+            "Day choices are clipped or too small at " + width + "px",
+          );
+        if (
+          await page
+            .locator("#days")
+            .evaluate((el) => el.scrollWidth > el.clientWidth)
+        )
+          throw Error(
+            "Day choices need horizontal scrolling at " + width + "px",
+          );
+
         await page.getByRole("button", { name: "Sat 05", exact: true }).click();
         const join = page.locator('.join[data-open="8"]');
         const box = await join.boundingBox();

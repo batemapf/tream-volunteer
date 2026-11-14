@@ -84,3 +84,7 @@ Responsive browser regression covers page widths 320–1440px, visible 44px mobi
 ## November 14, 2026 updates
 
 Added optional per-shift configurable task preferences for lot volunteering; refreshed the public and organizer branding using the original Brent bear, locally hosted Fjalla One heading font, white background and requested full 2026 sale title. Added HTML and HTTP noindex directives and robots.txt. See tasks-branding-and-visibility.md for source assets, configuration/migration semantics and crawler limitations. Preferences remain private; no sub-job staffing quotas or qualification claims are inferred.
+
+## Mobile day filters and form copy cleanup
+
+Removed “Join this shift” from the signup form. Replaced the horizontally scrolling mobile day strip with a three-column wrapping grid (two rows for the current five-day schedule plus All days). All day choices remain visible with 44px touch targets. Tablets use six columns where space permits; desktop behavior is preserved. Removed obsolete horizontal day-scroll code. Responsive regression checks now explicitly assert that every day button fits without horizontal scrolling at 320–900px.

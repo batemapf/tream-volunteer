@@ -618,12 +618,11 @@ form select {
     display: block;
   }
   .volunteer-sheet .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 5px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
     padding: 2px 0 10px;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
+    overflow: visible;
   }
   .volunteer-sheet .tabs::-webkit-scrollbar {
     display: none;
@@ -1086,5 +1085,11 @@ dialog {
 @media (max-width: 900px) {
   .volunteer-sheet .sheet-bottom {
     display: none;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 900px) {
+  .volunteer-sheet .tabs {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
