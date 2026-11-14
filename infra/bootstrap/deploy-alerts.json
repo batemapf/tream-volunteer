@@ -5,19 +5,40 @@
       "Sid": "ManageTreamOperationsAlertTopic",
       "Effect": "Allow",
       "Action": [
-        "sns:CreateTopic", "sns:DeleteTopic", "sns:GetTopicAttributes",
-        "sns:SetTopicAttributes", "sns:TagResource", "sns:UntagResource",
-        "sns:ListTagsForResource", "sns:Subscribe", "sns:ListSubscriptionsByTopic"
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:GetTopicAttributes",
+        "sns:SetTopicAttributes",
+        "sns:TagResource",
+        "sns:UntagResource",
+        "sns:ListTagsForResource",
+        "sns:Subscribe",
+        "sns:ListSubscriptionsByTopic",
+        "sns:GetSubscriptionAttributes",
+        "sns:SetSubscriptionAttributes",
+        "sns:Unsubscribe"
       ],
       "Resource": "arn:aws:sns:us-east-2:620144980370:tream-dev-operations",
-      "Condition": {"StringEquals": {"aws:RequestedRegion": "us-east-2"}}
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-2"
+        }
+      }
     },
     {
       "Sid": "ManageOperationsAlertSubscription",
       "Effect": "Allow",
-      "Action": ["sns:GetSubscriptionAttributes", "sns:SetSubscriptionAttributes", "sns:Unsubscribe"],
+      "Action": [
+        "sns:GetSubscriptionAttributes",
+        "sns:SetSubscriptionAttributes",
+        "sns:Unsubscribe"
+      ],
       "Resource": "arn:aws:sns:us-east-2:620144980370:tream-dev-operations:*",
-      "Condition": {"StringEquals": {"aws:RequestedRegion": "us-east-2"}}
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-2"
+        }
+      }
     }
   ]
 }
