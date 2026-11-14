@@ -7,10 +7,11 @@ let days = [
 ];
 // Local demo only; the deployed board receives configurable choices from the API.
 const demoTasks = [
-  { id: "cashier", label: "Cashier" },
-  { id: "chainsaw", label: "Chainsaw" },
   { id: "sales", label: "Sales" },
-  { id: "loading", label: "Loading" },
+  { id: "cashier", label: "Cashiering" },
+  { id: "greenery", label: "Greenery Management" },
+  { id: "lot-maintenance", label: "Lot Maintenance/Inventory Replenishment" },
+  { id: "tree-prep", label: "Tree Prep (Chainsaw/Baling/Loading)" },
 ];
 let jobs = [
   ["2026-12-02", "Lot setup & prep", "Setup", 10, 15, 15, true],
@@ -322,7 +323,7 @@ function openShift(id) {
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Keep my name private on the board.</span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
@@ -341,11 +342,6 @@ function openShift(id) {
     $("#start").onchange = updateEnds;
     updateEnds();
   }
-  $("#name").oninput = () => {
-    $("#namepreview").textContent = $("#name").value.trim()
-      ? "Public preview: " + publicLabel($("#name").value)
-      : "Otherwise, you’ll appear as “Volunteer (name private).”";
-  };
   $("#signup").onsubmit = async (e) => {
     e.preventDefault();
     const start = +$("#start").value,
@@ -378,7 +374,7 @@ function openShift(id) {
       subJobPreferences: preferences,
       start,
       end,
-      publicName: $("#share").checked
+      publicName: !$("#share").checked
         ? publicLabel(name)
         : "Volunteer (name private)",
     };
@@ -388,7 +384,7 @@ function openShift(id) {
         start,
         end,
         name,
-        shareName: $("#share").checked,
+        shareName: !$("#share").checked,
         subJobs: selectedTasks,
       };
       const fingerprint = JSON.stringify([$("#email").value, selection]);

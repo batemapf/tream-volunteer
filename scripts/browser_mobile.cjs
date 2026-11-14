@@ -60,13 +60,18 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
           throw Error(
             "Signup action is clipped or too small at " + width + "px",
           );
-        if (width === 390) {
+        if (width === 390 || width === 430) {
           await join.click();
+          if (await page.locator("#share").isChecked())
+            throw Error("Name sharing should be the default");
+          if (await page.getByRole("heading", { name: /Who’s coming/ }).count())
+            throw Error("Unnecessary roster heading remains");
           await page.locator("#end").selectOption("11");
           await page.locator('[data-task][value="cashier"]').check();
-          await page.locator('[data-task][value="loading"]').check();
+          await page.locator('[data-task][value="tree-prep"]').check();
           await page.locator("#name").fill("Mobile Test");
           await page.locator("#email").fill("mobile@example.com");
+          if (width === 430) await page.locator("#share").check();
           await page
             .getByRole("button", { name: "Sign up", exact: true })
             .click();
@@ -74,11 +79,26 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
             .getByRole("heading", { name: "You’re on the Tream.", exact: true })
             .waitFor();
           await page
-            .getByText("Task preferences: Cashier, Loading", { exact: true })
+            .getByText(
+              "Task preferences: Cashiering, Tree Prep (Chainsaw/Baling/Loading)",
+              { exact: true },
+            )
             .waitFor();
           await page
             .getByRole("button", { name: "Back to the board", exact: true })
             .click();
+          const expectedName =
+            width === 430 ? "Volunteer (name private)" : "Mobile T.";
+          if (
+            !(await page.evaluate(
+              (expected) =>
+                JSON.parse(localStorage.getItem("tream-board-demo")).some(
+                  (entry) => entry.publicName === expected,
+                ),
+              expectedName,
+            ))
+          )
+            throw Error("Signup name visibility did not match privacy choice");
           await page.locator("#mine").click();
           await page
             .getByRole("button", { name: "Cancel signup", exact: true })

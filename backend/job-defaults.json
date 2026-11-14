@@ -1,10 +1,26 @@
 {
   "Sales": {
     "subJobs": [
-      {"id":"cashier","label":"Cashier"},
-      {"id":"chainsaw","label":"Chainsaw"},
-      {"id":"sales","label":"Sales"},
-      {"id":"loading","label":"Loading"}
+      {
+        "id": "sales",
+        "label": "Sales"
+      },
+      {
+        "id": "cashier",
+        "label": "Cashiering"
+      },
+      {
+        "id": "greenery",
+        "label": "Greenery Management"
+      },
+      {
+        "id": "lot-maintenance",
+        "label": "Lot Maintenance/Inventory Replenishment"
+      },
+      {
+        "id": "tree-prep",
+        "label": "Tree Prep (Chainsaw/Baling/Loading)"
+      }
     ]
   }
 }

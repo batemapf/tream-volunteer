@@ -51,16 +51,26 @@ for row in rows:
     except ClientError as error:
         if error.response["Error"]["Code"] != "ConditionalCheckFailedException":
             raise
-    # Add only a previously absent optional field. Never replace organizer choices.
+    # Populate missing choices or migrate the exact original draft defaults.
+    # Custom organizer choices and existing bookings stay unchanged.
     if sub_jobs:
         try:
             store.client.update_item(
                 TableName=store.table,
                 Key=store.encode({"pk": "SHIFT#" + row["id"]}),
                 UpdateExpression="SET subJobs = :options, revision = revision + :one",
-                ConditionExpression="attribute_exists(pk) AND attribute_not_exists(subJobs)",
+                ConditionExpression="attribute_exists(pk) AND (attribute_not_exists(subJobs) OR subJobs = :original)",
                 ExpressionAttributeValues=store.encode(
-                    {":options": sub_jobs, ":one": 1}
+                    {
+                        ":options": sub_jobs,
+                        ":one": 1,
+                        ":original": [
+                            {"id": "cashier", "label": "Cashier"},
+                            {"id": "chainsaw", "label": "Chainsaw"},
+                            {"id": "sales", "label": "Sales"},
+                            {"id": "loading", "label": "Loading"},
+                        ],
+                    }
                 ),
             )
         except ClientError as error:

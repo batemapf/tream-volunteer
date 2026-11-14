@@ -88,3 +88,7 @@ Added optional per-shift configurable task preferences for lot volunteering; ref
 ## Mobile day filters and form copy cleanup
 
 Removed “Join this shift” from the signup form. Replaced the horizontally scrolling mobile day strip with a three-column wrapping grid (two rows for the current five-day schedule plus All days). All day choices remain visible with 44px touch targets. Tablets use six columns where space permits; desktop behavior is preserved. Removed obsolete horizontal day-scroll code. Responsive regression checks now explicitly assert that every day button fits without horizontal scrolling at 320–900px.
+
+### Signup copy, name visibility, and lot tasks
+
+Removed the form roster heading and private-name explanatory copy. New signups show first name and last initial by default; checking “Keep my name private on the board” opts out. Existing signup privacy remains unchanged. Lot task choices are Sales, Cashiering, Greenery Management, Lot Maintenance/Inventory Replenishment, and Tree Prep (Chainsaw/Baling/Loading). The schedule seed migrates only the exact original draft task list, preserving custom choices and existing booking records.
