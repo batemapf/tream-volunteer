@@ -15,7 +15,7 @@ const demoTasks = [
 ];
 let jobs = [
   ["2026-12-02", "Lot setup & prep", "Setup", 10, 15, 15, true],
-  ["2026-12-02", "Tree unloading", "Lifting", 10, 13, 75, true],
+  ["2026-12-02", "Tree unloading", "Lifting", 16, 18, 75, true],
   ["2026-12-03", "Pre-opening setup", "Setup", 10, 15, 15, true],
   ["2026-12-03", "Lot sales", "Sales", 15, 19, 30, true],
   ["2026-12-04", "Pre-opening setup", "Setup", 10, 15, 10, true],
@@ -117,25 +117,30 @@ async function api(path, options = {}) {
 }
 async function loadSchedule() {
   if (!apiBase) return;
-  const data = await api("/schedule");
-  jobs = data.shifts;
-  days = [...new Set(jobs.map((j) => j.date))].sort().map((d) => [
-    d,
-    new Date(d + "T12:00:00").toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    }),
-  ]);
-  const roles = [...new Set(jobs.map((j) => j.role))].sort();
-  if (!roles.includes(role)) role = "all";
-  $("#jobfilter").innerHTML =
-    '<option value="all">All jobs</option>' +
-    roles.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
-  $("#jobfilter").value = role;
-  if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
-  seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
-  render();
+  $("#rows").setAttribute("aria-busy", "true");
+  try {
+    const data = await api("/schedule");
+    jobs = data.shifts;
+    days = [...new Set(jobs.map((j) => j.date))].sort().map((d) => [
+      d,
+      new Date(d + "T12:00:00").toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+      }),
+    ]);
+    const roles = [...new Set(jobs.map((j) => j.role))].sort();
+    if (!roles.includes(role)) role = "all";
+    $("#jobfilter").innerHTML =
+      '<option value="all">All jobs</option>' +
+      roles.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
+    $("#jobfilter").value = role;
+    if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
+    seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
+    render();
+  } finally {
+    $("#rows").setAttribute("aria-busy", "false");
+  }
 }
 function secureToken() {
   const b = crypto.getRandomValues(new Uint8Array(32));
@@ -306,7 +311,7 @@ function openShift(id) {
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Keep my name private on the board.</span></label><p class="sub">Test signup. A confirmation will be emailed to you.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : ""}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Volunteer name</label><input id="name" placeholder="Full name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label for="phone">Phone number</label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="40" required><label class="check consent"><input id="share" type="checkbox"><span>Keep my name private on the board.</span></label><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
@@ -368,6 +373,7 @@ function openShift(id) {
         start,
         end,
         name,
+        phone: $("#phone").value.trim(),
         shareName: !$("#share").checked,
         subJobs: selectedTasks,
       };
@@ -452,31 +458,14 @@ $("#need").onchange = (e) => {
   render();
 };
 $("#mine").onclick = findSignups;
-$("#reset").onclick = () => {
-  if (apiBase) {
-    toast("Use your confirmation email to manage your signup.");
-    return;
-  }
-  entries = [];
-  day = "all";
-  role = "all";
-  onlyNeed = false;
-  $("#jobfilter").value = "all";
-  $("#need").checked = false;
-  save();
-  toast("Demo reset.");
-};
 render();
 
 if (apiBase) {
-  $("#reset").hidden = true;
-  document.querySelector(".demo-label").textContent =
-    "Development · shared test data";
   jobs = [];
   seed = [];
   render();
   $("#rows").innerHTML =
-    '<tr><td colspan="6">Loading shared schedule…</td></tr>';
+    '<tr><td colspan="6"><div class="schedule-loading" role="status"><span class="loading-spinner" aria-hidden="true"></span>Loading schedule…</div></td></tr>';
   loadSchedule().catch(() => {
     $("#rows").innerHTML =
       '<tr><td colspan="6">Unable to load the board. Refresh to try again.</td></tr>';

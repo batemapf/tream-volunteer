@@ -110,3 +110,16 @@ class RecoveryTests(unittest.TestCase):
         self.request()
         self.request("other@gmail.com")
         self.assertEqual(len(self.summaries()), 2)
+
+    def test_booking_scoped_update_link_cannot_manage_other_family_commitment(self):
+        import secrets
+
+        token = secrets.token_urlsafe(32)
+        self.store.rows["RECOVERYACCESS#" + token_hash(token)] = {
+            "contactHash": contact_hash("family@gmail.com"),
+            "bookingId": self.a["bookingId"],
+            "expiresAt": NOW + 86400,
+        }
+        self.service.managed(self.a["bookingId"], token)
+        with self.assertRaises(Problem):
+            self.service.managed(self.b["bookingId"], token)

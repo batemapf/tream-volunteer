@@ -193,7 +193,7 @@
       (b) =>
         ids.has(b.shiftId) &&
         (!search ||
-          (b.name + " " + b.email)
+          (b.name + " " + b.email + " " + (b.phone || ""))
             .toLowerCase()
             .includes(search.toLowerCase())),
     );
@@ -229,7 +229,7 @@
         0,
       ),
       pending = data.conflicts.filter((c) => !c.reviewed).length;
-    root.innerHTML = `<div class="a-title"><div><p class="eyebrow">TREAM HEADQUARTERS</p><h1>Organizer desk</h1></div><button id="refresh">Refresh</button></div><div class="a-banner">Development · draft schedule · email sending is disabled. Use sample contact details.</div><div class="a-metrics"><div class="a-metric"><span>Active commitments</span><strong>${data.bookings.length}</strong></div><div class="a-metric"><span>Contact emails</span><strong>${new Set(data.bookings.map((b) => b.email)).size}</strong></div><div class="a-metric"><span>Overlaps to review</span><strong>${pending}</strong></div><div class="a-metric"><span>Unfilled volunteer-hours</span><strong>${Number(gap.toFixed(1))}</strong></div></div><nav class="a-tabs" aria-label="Organizer sections">${[
+    root.innerHTML = `<div class="a-title"><div><p class="eyebrow">TREAM HEADQUARTERS</p><h1>Organizer desk</h1></div><button id="refresh">Refresh</button></div><div class="a-metrics"><div class="a-metric"><span>Active commitments</span><strong>${data.bookings.length}</strong></div><div class="a-metric"><span>Contact emails</span><strong>${new Set(data.bookings.map((b) => b.email)).size}</strong></div><div class="a-metric"><span>Overlaps to review</span><strong>${pending}</strong></div><div class="a-metric"><span>Unfilled volunteer-hours</span><strong>${Number(gap.toFixed(1))}</strong></div></div><nav class="a-tabs" aria-label="Organizer sections">${[
       ["coverage", "Coverage & shifts"],
       ["volunteers", "Volunteers"],
       ["conflicts", "Overlaps" + (pending ? " · " + pending : "")],
@@ -341,7 +341,7 @@
     const rows = bookings();
     $("#pane").innerHTML =
       commonControls() +
-      `<div class="a-controls"><label class="sr" for="search">Search volunteers</label><input id="search" type="search" placeholder="Search name or email" value="${esc(search)}"><button id="message-selected" ${selected.size ? "" : "disabled"}>Message selected (${selected.size})</button><button id="export">Export filtered roster</button></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th><input type="checkbox" id="select-all" aria-label="Select visible volunteers" ${rows.length && rows.every((b) => selected.has(b.id)) ? "checked" : ""}></th><th>Volunteer / private contact</th><th>Job</th><th>Committed hours</th><th>Task preferences</th><th>Public name</th><th>Actions</th></tr></thead><tbody>${rows.map((b) => `<tr><td><input type="checkbox" data-select="${b.id}" aria-label="Select ${esc(b.name)}" ${selected.has(b.id) ? "checked" : ""}></td><td><strong>${esc(b.name)}</strong><small>${esc(b.email)}</small></td><td>${esc(job(b.shiftId)?.name)}<small>${esc(dateLabel(job(b.shiftId).date))}</small></td><td>${fmt(b.start)}–${fmt(b.end)}</td><td>${(b.subJobPreferences || []).map((option) => esc(option.label)).join(", ") || "—"}</td><td>${esc(b.publicName)}</td><td><button data-message="${b.id}">Message</button> <button class="danger" data-cancel="${b.id}">Cancel</button></td></tr>`).join("") || '<tr><td colspan="7">No active commitments match these filters.</td></tr>'}</tbody></table></div><p class="a-footnote">Contacts are private. Shared email addresses can belong to several family members. Message recipients are deduplicated by email.</p>`;
+      `<div class="a-controls"><label class="sr" for="search">Search volunteers</label><input id="search" type="search" placeholder="Search name, email or phone" value="${esc(search)}"><button id="message-selected" ${selected.size ? "" : "disabled"}>Message selected (${selected.size})</button><button id="export">Export filtered roster</button></div><div class="a-table-wrap"><table class="a-table"><thead><tr><th><input type="checkbox" id="select-all" aria-label="Select visible volunteers" ${rows.length && rows.every((b) => selected.has(b.id)) ? "checked" : ""}></th><th>Volunteer / private contact</th><th>Job</th><th>Committed hours</th><th>Task preferences</th><th>Public name</th><th>Actions</th></tr></thead><tbody>${rows.map((b) => `<tr><td><input type="checkbox" data-select="${b.id}" aria-label="Select ${esc(b.name)}" ${selected.has(b.id) ? "checked" : ""}></td><td><strong>${esc(b.name)}</strong><small>${esc(b.email)}${b.phone ? `<br>${esc(b.phone)}` : ""}</small></td><td>${esc(job(b.shiftId)?.name)}<small>${esc(dateLabel(job(b.shiftId).date))}</small></td><td>${fmt(b.start)}–${fmt(b.end)}</td><td>${(b.subJobPreferences || []).map((option) => esc(option.label)).join(", ") || "—"}</td><td>${esc(b.publicName)}</td><td><button data-message="${b.id}">Message</button> <button class="danger" data-cancel="${b.id}">Cancel</button></td></tr>`).join("") || '<tr><td colspan="7">No active commitments match these filters.</td></tr>'}</tbody></table></div><p class="a-footnote">Contacts are private. Shared email addresses can belong to several family members. Message recipients are deduplicated by email.</p>`;
     wireFilters();
     $("#search").oninput = (e) => {
       search = e.target.value;
@@ -586,7 +586,7 @@
         });
         $("#message-error").textContent = "";
         $("#message-preview").innerHTML =
-          `<h2>${preview.recipientCount} contact${preview.recipientCount === 1 ? "" : "s"} · ${preview.volunteerCount} commitments</h2><p class="sub">Each contact receives their own message. No shared To/CC list.</p><h3>${esc(preview.subject)}</h3><p class="a-preview-body">${esc(preview.body)}</p>${preview.recipients.map((r) => `<div class="a-recipient"><strong>${esc(r.email)}</strong><ul>${r.commitments.map((c) => `<li>${esc(c.name)} · ${esc(c.shift)} · ${esc(dateLabel(c.date))}, ${fmt(c.start)}–${fmt(c.end)}</li>`).join("")}</ul></div>`).join("")}<button class="primary full" id="save-draft">Save draft · sending disabled</button><p class="a-inline-message" id="draft-status" role="status"></p>`;
+          `<h2>${preview.recipientCount} contact${preview.recipientCount === 1 ? "" : "s"} · ${preview.volunteerCount} commitments</h2><p class="sub">Each contact receives their own message. No shared To/CC list.</p><h3>${esc(preview.subject)}</h3><p class="a-preview-body">${esc(preview.body)}</p>${preview.recipients.map((r) => `<div class="a-recipient"><strong>${esc(r.email)}</strong><ul>${r.commitments.map((c) => `<li>${esc(c.name)} · ${esc(c.shift)} · ${esc(dateLabel(c.date))}, ${fmt(c.start)}–${fmt(c.end)}</li>`).join("")}</ul></div>`).join("")}<button class="primary full" id="save-draft">Save draft</button><p class="a-inline-message" id="draft-status" role="status"></p>`;
         $("#save-draft").onclick = async () => {
           $("#save-draft").disabled = true;
           try {

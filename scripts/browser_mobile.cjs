@@ -22,7 +22,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       if ((await page.locator("h1").count()) !== 1)
         throw Error("Expected one event heading");
       await page
-        .getByText("Volunteer signup · Organized by Brent PTA", { exact: true })
+        .getByText("Organized by Brent PTA · © 2026", { exact: true })
         .waitFor();
       if (overflow)
         throw Error("Page overflows horizontally at " + width + "px");
@@ -90,6 +90,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
           await page.locator('[data-task][value="cashier"]').check();
           await page.locator('[data-task][value="tree-prep"]').check();
           await page.locator("#name").fill("Mobile Test");
+          await page.locator("#phone").fill("202-555-0123");
           await page.locator("#email").fill("mobile@example.com");
           if (width === 430) await page.locator("#share").check();
           await page

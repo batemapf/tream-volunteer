@@ -90,6 +90,7 @@ try:
                     "start": 9,
                     "end": 11,
                     "name": "Tream Email Test",
+                    "phone": "+1 202-555-0123",
                     "shareName": False,
                     "participantId": str(uuid.uuid4()),
                     "idempotencyKey": key,

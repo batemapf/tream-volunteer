@@ -65,6 +65,7 @@ def create_selection(shift, name):
     item = {
         "shiftId": shift,
         "name": name,
+        "phone": "+1 202-555-0123",
         "shareName": False,
         "start": 10,
         "end": 11,

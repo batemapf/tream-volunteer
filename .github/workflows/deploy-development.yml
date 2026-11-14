@@ -81,6 +81,7 @@ jobs:
           distribution="$(terraform -chdir=infra/app output -raw distribution_id)"
           /tmp/tream-deploy-venv/bin/python scripts/seed_schedule.py
           /tmp/tream-deploy-venv/bin/python scripts/backfill_contacts.py
+          /tmp/tream-deploy-venv/bin/python scripts/update_unloading.py
           python3 - <<'PY'
           import json, os
           from pathlib import Path

@@ -53,6 +53,7 @@ def selection(shift="0", **changes):
         "start": 10,
         "end": 11,
         "name": "Smoke PrivateName",
+        "phone": "+1 202-555-0123",
         "shareName": False,
         "idempotencyKey": str(uuid.uuid4()),
         "participantId": str(uuid.uuid4()),

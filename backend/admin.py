@@ -311,6 +311,7 @@ class AdminService:
             "bookings": [
                 {
                     **{k: b[k] for k in allowed},
+                    "phone": b.get("phone", ""),
                     "subJobPreferences": b.get("subJobPreferences", []),
                 }
                 for b in bookings
@@ -418,6 +419,7 @@ class AdminService:
             [
                 "Volunteer",
                 "Contact email",
+                "Contact phone",
                 "Job",
                 "Day",
                 "Arrive",
@@ -431,7 +433,9 @@ class AdminService:
             if (
                 query.get("q")
                 and query["q"].casefold()
-                not in (b["name"] + " " + b["email"]).casefold()
+                not in (
+                    b["name"] + " " + b["email"] + " " + b.get("phone", "")
+                ).casefold()
             ):
                 continue
             if query.get("day") and query["day"] != s["date"]:
@@ -446,6 +450,7 @@ class AdminService:
                     for v in [
                         b["name"],
                         b["email"],
+                        b.get("phone", ""),
                         s["name"],
                         s["date"],
                         self.hour(b["start"]),

@@ -85,6 +85,7 @@ class BookingService:
                 "email": email,
                 "contactHash": contact_hash(email),
                 "name": selection["name"],
+                "phone": selection["phone"],
                 "publicName": result["publicName"],
                 "subJobPreferences": preferences,
                 "start": start,
@@ -158,6 +159,7 @@ class BookingService:
                 valid = bool(
                     grant
                     and grant["expiresAt"] > self.clock()
+                    and grant.get("bookingId", booking_id) == booking_id
                     and hmac.compare_digest(
                         grant["contactHash"], contact_hash(booking["email"])
                     )

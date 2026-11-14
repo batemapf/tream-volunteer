@@ -43,6 +43,7 @@ def selection(id="one", **kwargs):
         "start": 9,
         "end": 11,
         "name": "Susan Example",
+        "phone": "+1 202-555-0123",
         "shareName": False,
         "idempotencyKey": str(uuid.uuid4()),
         "participantId": str(uuid.uuid4()),
@@ -135,6 +136,20 @@ class BookingTests(unittest.TestCase):
 
     def book(self, raw=None):
         return self.service.book("parent@example.com", raw or selection())
+
+    def test_phone_is_required_validated_and_private(self):
+        for phone in (None, "", "123", "call me", "2025550123\n123"):
+            with self.subTest(phone=phone), self.assertRaises(Problem):
+                self.book(selection(phone=phone))
+        booked = self.book(selection(phone="+1 (202) 555-0123 ext. 42"))
+        self.assertEqual(
+            self.store.get("BOOKING#" + booked["bookingId"])["phone"],
+            "+1 (202) 555-0123 ext. 42",
+        )
+        self.assertNotIn("phone", booked)
+        self.assertNotIn(
+            "555-0123", json.dumps(public_shift(self.store.get("SHIFT#one"), NOW))
+        )
 
     def test_competing_claims_never_overbook(self):
         service = BookingService(MemoryStore(shift(capacity=3)), clock=lambda: NOW)

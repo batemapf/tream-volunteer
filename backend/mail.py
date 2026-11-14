@@ -97,6 +97,8 @@ def content(row):
 
     subject = f"Brent PTA holiday sale: {labels[row['kind']]}"
     body = f"{labels[row['kind']]}, {d['name']}.\n\n{s['name']}\n{s['date']}\n{hour(d['start'])}–{hour(d['end'])} Eastern\n{s['location']}\n\n"
+    if row.get("notice"):
+        body += row["notice"] + "\n\n"
     if row.get("manageToken"):
         link = (
             os.environ["SITE_ORIGIN"]
@@ -108,7 +110,7 @@ def content(row):
             + link
             + "\n\nOpening this link does not change your signup. Keep this link private.\n\n"
         )
-    body += "Organized by Brent PTA.\nThis is a test signup for team review.\n"
+    body += "Organized by Brent PTA.\n"
     return subject, body
 
 
@@ -202,8 +204,12 @@ def handler(event, context):
         store.client.update_item(
             TableName=store.table,
             Key=store.encode({"pk": row["pk"]}),
-            UpdateExpression="SET #status = :status, messageId = :message, completedAt = :now REMOVE recordType, manageToken, details, shift, recipient, leaseUntil, #items",
-            ExpressionAttributeNames={"#status": "status", "#items": "items"},
+            UpdateExpression="SET #status = :status, messageId = :message, completedAt = :now REMOVE recordType, manageToken, details, shift, recipient, leaseUntil, #items, #notice",
+            ExpressionAttributeNames={
+                "#status": "status",
+                "#items": "items",
+                "#notice": "notice",
+            },
             ExpressionAttributeValues=store.encode(
                 {":status": status, ":message": message_id, ":now": int(time.time())}
             ),

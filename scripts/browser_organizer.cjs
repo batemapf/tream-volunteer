@@ -61,7 +61,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       .waitFor();
     await page
       .getByRole("button", {
-        name: "Save draft · sending disabled",
+        name: "Save draft",
         exact: true,
       })
       .click();

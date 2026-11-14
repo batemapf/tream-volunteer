@@ -65,7 +65,7 @@ function render() {
       );
       $("#manage-status").textContent = result.queued
         ? "Check your inbox for the confirmation email."
-        : "Email delivery is restricted to the test inbox.";
+        : "Email is not available for this signup. Contact the organizer for help.";
     } catch (e) {
       fail(e);
       $("#resend").disabled = false;

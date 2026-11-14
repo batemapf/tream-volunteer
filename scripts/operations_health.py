@@ -221,3 +221,21 @@ print(
         }
     )
 )
+
+correction = store.get("AUDIT#unloading-time-correction-2026")
+if correction:
+    receipts = store.get_many(
+        ["MAIL#" + id for id in correction.get("notificationIds", [])]
+    )
+    print(
+        json.dumps(
+            {
+                "unloadingCorrection": {
+                    "updatedBookings": correction.get("updatedBookings"),
+                    "notificationStates": dict(
+                        Counter(r["status"] for r in receipts if r)
+                    ),
+                }
+            }
+        )
+    )
