@@ -40,6 +40,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("heading", { name: "Organizer desk", exact: true })
       .waitFor({ timeout: 30000 });
+    for (const width of [320, 360, 390, 600, 800, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const tabs = await page.locator(".a-tabs").evaluate((el) => ({
+        overflow: el.scrollWidth > el.clientWidth,
+        buttons: [...el.querySelectorAll("button")].map((b) => {
+          const r = b.getBoundingClientRect();
+          return { left: r.left, right: r.right, height: r.height };
+        }),
+      }));
+      if (
+        tabs.overflow ||
+        tabs.buttons.length !== 4 ||
+        tabs.buttons.some((b) => b.left < 0 || b.right > width || b.height < 44)
+      )
+        throw Error("Organizer tabs scroll or clip at " + width + "px");
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole("button", { name: "Messages", exact: true }).click();
     if (await page.locator('#recipient-mode option[value="selected"]').count())
       throw Error("Empty selected-volunteers option should be hidden");
