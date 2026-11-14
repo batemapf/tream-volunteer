@@ -95,6 +95,33 @@ class HandlerTests(unittest.TestCase):
             "canceled",
         )
 
+    def test_domain_migration_keeps_both_exact_origins_and_rejects_lookalikes(self):
+        with patch.dict(
+            os.environ,
+            {
+                "SITE_ORIGINS": "https://volunteer.brentholidaysale.com,https://board.example.com"
+            },
+        ):
+            for origin in (
+                "https://volunteer.brentholidaysale.com",
+                "https://board.example.com",
+            ):
+                status, _ = self.call(
+                    "POST",
+                    "/bookings",
+                    {"email": "parent@example.com", "selections": [selection()]},
+                    {"origin": origin},
+                )
+                self.assertEqual(status, 200)
+            for origin in (
+                "https://volunteer.brentholidaysale.com.evil.test",
+                "http://volunteer.brentholidaysale.com",
+                "https://brentholidaysale.com",
+                "",
+            ):
+                status, _ = self.call("POST", "/bookings", {}, {"origin": origin})
+                self.assertEqual(status, 403)
+
     def test_invalid_batch_is_bad_request(self):
         for payload in (
             [],

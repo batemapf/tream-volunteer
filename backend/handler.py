@@ -58,7 +58,8 @@ def organizer_actor(event):
 
 
 def payload(event, headers):
-    if headers.get("origin") != os.environ["SITE_ORIGIN"]:
+    origins = os.environ.get("SITE_ORIGINS", os.environ["SITE_ORIGIN"]).split(",")
+    if headers.get("origin") not in origins:
         raise Problem("Open the signup page to make changes.", "origin", 403)
     raw = event.get("body") or "{}"
     try:

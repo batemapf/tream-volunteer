@@ -60,6 +60,8 @@ jobs:
       - name: Apply development infrastructure
         working-directory: infra/app
         run: terraform apply -input=false -lock-timeout=120s deployment.tfplan
+      - name: Show volunteer site DNS records
+        run: terraform -chdir=infra/app output -json site_domain_dns
       - name: Show email DNS records
         run: terraform -chdir=infra/app output -json email_dns_records
       - name: Prepare application tooling
@@ -94,7 +96,7 @@ jobs:
             echo '## Development deployment'
             echo "- Board: ${SITE_URL}"
             echo "- API: ${API_URL}"
-            echo '- Shared development database. Email delivery restricted to the owner test inbox; organizer broadcast sending stays disabled.'
+            echo '- Shared development database. Transactional team-test emails are enabled; organizer broadcast sending stays disabled.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise deployed API and clean up test data
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_aws.py

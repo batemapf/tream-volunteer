@@ -21,9 +21,11 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 locals {
-  name   = "tream-dev"
-  bucket = "tream-${data.aws_caller_identity.current.account_id}-dev-web"
-  origin = "https://${aws_cloudfront_distribution.web.domain_name}"
+  name              = "tream-dev"
+  bucket            = "tream-${data.aws_caller_identity.current.account_id}-dev-web"
+  cloudfront_origin = "https://${aws_cloudfront_distribution.web.domain_name}"
+  origin            = var.enable_site_domain ? "https://${local.site_domain}" : local.cloudfront_origin
+  allowed_origins   = distinct([local.origin, local.cloudfront_origin])
 }
 
 resource "aws_dynamodb_table" "data" {
@@ -116,6 +118,7 @@ resource "aws_cloudfront_distribution" "web" {
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
   comment             = "Tream development volunteer board"
+  aliases             = var.enable_site_domain ? [local.site_domain] : []
   origin {
     domain_name              = aws_s3_bucket.web.bucket_regional_domain_name
     origin_id                = "web"
@@ -139,7 +142,12 @@ resource "aws_cloudfront_distribution" "web" {
   restrictions {
     geo_restriction { restriction_type = "none" }
   }
-  viewer_certificate { cloudfront_default_certificate = true }
+  viewer_certificate {
+    cloudfront_default_certificate = !var.enable_site_domain
+    acm_certificate_arn            = var.enable_site_domain ? aws_acm_certificate_validation.site[0].certificate_arn : null
+    ssl_support_method             = var.enable_site_domain ? "sni-only" : null
+    minimum_protocol_version       = var.enable_site_domain ? "TLSv1.2_2021" : "TLSv1"
+  }
 }
 resource "aws_s3_bucket_policy" "web" {
   bucket = aws_s3_bucket.web.id
@@ -186,7 +194,7 @@ resource "aws_lambda_function" "api" {
   memory_size      = 256
   timeout          = 25
   environment {
-    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "Brent PTA Volunteers <volunteers@brentholidaysale.com>", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_DELIVERY_MODE = "public" }
+    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, SITE_ORIGINS = join(",", local.allowed_origins), EMAIL_ENABLED = "true", EMAIL_FROM = "Brent PTA Volunteers <volunteers@brentholidaysale.com>", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_DELIVERY_MODE = "public" }
   }
   depends_on = [aws_iam_role_policy.api]
 }
@@ -194,7 +202,7 @@ resource "aws_apigatewayv2_api" "api" {
   name          = "${local.name}-api"
   protocol_type = "HTTP"
   cors_configuration {
-    allow_origins = [local.origin]
+    allow_origins = local.allowed_origins
     allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["content-type", "authorization"]
     max_age       = 300
