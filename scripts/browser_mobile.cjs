@@ -32,6 +32,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
         if (width === 390) {
           await join.click();
           await page.locator("#end").selectOption("11");
+          await page.locator('[data-task][value="cashier"]').check();
+          await page.locator('[data-task][value="loading"]').check();
           await page.locator("#name").fill("Mobile Test");
           await page.locator("#email").fill("mobile@example.com");
           await page
@@ -39,6 +41,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
             .click();
           await page
             .getByRole("heading", { name: "You’re on the Tream.", exact: true })
+            .waitFor();
+          await page
+            .getByText("Task preferences: Cashier, Loading", { exact: true })
             .waitFor();
           await page
             .getByRole("button", { name: "Back to the board", exact: true })

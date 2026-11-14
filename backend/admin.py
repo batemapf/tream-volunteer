@@ -9,7 +9,13 @@ import math
 import time
 import uuid
 from datetime import date
-from domain import Problem, effective_capacity, epoch, validate_interval
+from domain import (
+    Problem,
+    effective_capacity,
+    epoch,
+    validate_interval,
+    normalize_sub_jobs,
+)
 from service import BookingService, Contention, public_shift
 
 
@@ -134,6 +140,8 @@ def edited_shift(old, payload):
             if not isinstance(payload[field], bool):
                 raise Problem("Invalid " + field + ".")
             updated[field] = payload[field]
+    if "subJobs" in payload:
+        updated["subJobs"] = normalize_sub_jobs(payload["subJobs"])
     if "attendance" in payload:
         policy = payload["attendance"]
         if not isinstance(policy, dict) or set(policy) - {
@@ -279,6 +287,7 @@ class AdminService:
                 {
                     "open": s.get("open", False),
                     "revision": s["revision"],
+                    "subJobs": s.get("subJobs", []),
                     "coverage": coverage(s),
                 }
             )
@@ -298,7 +307,13 @@ class AdminService:
         )
         return {
             "shifts": public,
-            "bookings": [{k: b[k] for k in allowed} for b in bookings],
+            "bookings": [
+                {
+                    **{k: b[k] for k in allowed},
+                    "subJobPreferences": b.get("subJobPreferences", []),
+                }
+                for b in bookings
+            ],
             "conflicts": conflicts,
             "emailEnabled": False,
         }
@@ -325,6 +340,7 @@ class AdminService:
             "flex",
             "open",
             "attendance",
+            "subJobs",
         }:
             raise Problem("Unknown shift fields.")
         new = edited_shift(old, payload)
@@ -400,6 +416,7 @@ class AdminService:
                 "Arrive",
                 "Leave",
                 "Public name",
+                "Task preferences",
             ]
         )
         for b in bookings:
@@ -427,6 +444,7 @@ class AdminService:
                         self.hour(b["start"]),
                         self.hour(b["end"]),
                         b["publicName"],
+                        "; ".join(p["label"] for p in b.get("subJobPreferences", [])),
                     ]
                 ]
             )

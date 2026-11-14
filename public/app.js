@@ -5,6 +5,13 @@ let days = [
   ["2026-12-05", "Saturday, Dec 5"],
   ["2026-12-06", "Sunday, Dec 6"],
 ];
+// Local demo only; the deployed board receives configurable choices from the API.
+const demoTasks = [
+  { id: "cashier", label: "Cashier" },
+  { id: "chainsaw", label: "Chainsaw" },
+  { id: "sales", label: "Sales" },
+  { id: "loading", label: "Loading" },
+];
 let jobs = [
   ["2026-12-02", "Lot setup & prep", "Setup", 10, 15, 15, true],
   ["2026-12-02", "Tree unloading", "Lifting", 10, 13, 75, true],
@@ -28,6 +35,7 @@ let jobs = [
   date: a[0],
   name: a[1],
   role: a[2],
+  subJobs: a[2] === "Sales" ? demoTasks : [],
   start: a[3],
   end: a[4],
   capacity: a[5],
@@ -318,13 +326,20 @@ function publicLabel(name) {
       : "")
   );
 }
+function taskChoices(j) {
+  const options = (j.subJobs || []).filter(
+    (option) => option.enabled !== false,
+  );
+  if (!options.length) return "";
+  return `<fieldset class="task-options"><legend>What would you like to help with? <span>(optional)</span></legend><p class="sub">Choose any that interest you. The team will assign tasks on the day.</p>${options.map((option) => `<label class="check task-choice"><input type="checkbox" data-task value="${esc(option.id)}"><span>${esc(option.label)}${option.description ? `<small>${esc(option.description)}</small>` : ""}</span></label>`).join("")}</fieldset>`;
+}
 function openShift(id) {
   const j = jobs.find((x) => String(x.id) === String(id));
   id = j.id;
   let pending = null;
   const roster = people(id),
     s = stats(j);
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : '<p class="sub">No one has joined yet. You could get this crew started.</p>'}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div><label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><p class="eyebrow">${days.find((x) => x[0] === j.date)[1]} · ${esc(j.location || "Canal Park")}</p><h2>${esc(j.name)}</h2><p class="sub">${fmt(j.start)}–${fmt(j.end)} · ${j.flex ? "Choose all or part of the shift." : "This job needs the entire shift."}</p><h3>Who’s coming · ${roster.length}</h3>${roster.length ? `<div class="roster">${roster.map((p) => `<div class="person"><span>${esc(p.publicName)}</span><span>${fmt(p.start)}–${fmt(p.end)}</span></div>`).join("")}</div>` : '<p class="sub">No one has joined yet. You could get this crew started.</p>'}${j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity) ? '<div class="summary">This shift is not accepting signups in this window. Try another shift.</div>' : `<form id="signup"><h3>Join this shift</h3><div class="times"><div><label for="start">Arrive</label><select id="start" ${j.flex ? "" : "disabled"}>${options(j, j.start, "start")}</select></div><div><label for="end">Leave</label><select id="end" ${j.flex ? "" : "disabled"}>${options(j, j.end)}</select></div></div>${taskChoices(j)}<label for="name">Your name</label><input id="name" placeholder="Sample name" maxlength="70" required autocomplete="off"><label for="email">Email</label><input id="email" type="email" placeholder="parent@example.com" required autocomplete="off"><label class="check consent"><input id="share" type="checkbox"><span>Show my first name and last initial on the board.<br><span class="sub" id="namepreview">Otherwise, you’ll appear as “Volunteer (name private).”</span></span></label><p class="sub">Development board. Use sample details; email is not enabled.</p><p class="error" id="error" role="alert"></p><button class="primary full">Sign up</button></form>`}`;
   modal.showModal();
   closeWire();
   if (j.open === false || s.min >= (j.effectiveCapacity ?? j.capacity)) return;
@@ -367,9 +382,17 @@ function openShift(id) {
       $("#error").textContent = "Please enter a name.";
       return;
     }
+    const selectedTasks = [
+      ...modal.querySelectorAll("[data-task]:checked"),
+    ].map((input) => input.value);
+    const preferences = selectedTasks.map((id) => {
+      const option = j.subJobs.find((option) => option.id === id);
+      return { id: option.id, label: option.label };
+    });
     const entry = {
       id: Date.now(),
       job: id,
+      subJobPreferences: preferences,
       start,
       end,
       publicName: $("#share").checked
@@ -383,6 +406,7 @@ function openShift(id) {
         end,
         name,
         shareName: $("#share").checked,
+        subJobs: selectedTasks,
       };
       const fingerprint = JSON.stringify([$("#email").value, selection]);
       if (!pending || pending.fingerprint !== fingerprint)
@@ -415,6 +439,7 @@ function openShift(id) {
             outcome.message || "This selection could not be booked.",
           );
         entry.id = outcome.bookingId;
+        entry.subJobPreferences = outcome.subJobPreferences || preferences;
         entry.token = pending.manageToken;
         if (!entries.some((p) => p.id === entry.id)) entries.push(entry);
         save();
@@ -428,7 +453,7 @@ function openShift(id) {
       entries.push(entry);
       save();
     }
-    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${esc(j.name)}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · ${esc(j.location || "Canal Park")}</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p><button class="primary full" id="done">Back to the board</button>`;
+    modal.innerHTML = `<button class="close" aria-label="Close">×</button><div class="success">✓</div><h2>You’re on the Tream.</h2><div class="summary"><strong>${esc(j.name)}</strong><br>${days.find((x) => x[0] === j.date)[1]}<br>${fmt(start)}–${fmt(end)} · ${esc(j.location || "Canal Park")}</div><p class="sub">On the board: ${esc(entry.publicName)}.<br>Your commitment ends at ${fmt(end)}.</p>${entry.subJobPreferences?.length ? `<p class="sub">Task preferences: ${entry.subJobPreferences.map((option) => esc(option.label)).join(", ")}</p>` : ""}<button class="primary full" id="done">Back to the board</button>`;
     closeWire();
     $("#done").onclick = () => modal.close();
   };

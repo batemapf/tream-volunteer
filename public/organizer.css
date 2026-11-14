@@ -338,3 +338,28 @@ button.danger {
     min-width: 78px;
   }
 }
+
+.a-login,
+.a-card,
+.a-metric {
+  box-shadow: none;
+  border-radius: 4px;
+}
+.a-banner {
+  background: #f5f8ef;
+}
+.a-title h1,
+.a-login h1 {
+  font-family: "Fjalla One", "Arial Narrow", Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+@media (max-width: 600px) {
+  .a-header {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .a-header a {
+    font-size: 10px;
+  }
+}

@@ -140,6 +140,28 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(result["statusCode"], 200)
         self.assertIn("bookings", json.loads(result["body"]))
 
+    def test_crawler_headers_and_api_robots(self):
+        result = handler.handler(
+            {
+                "requestContext": {"http": {"method": "GET"}},
+                "rawPath": "/robots.txt",
+                "headers": {},
+            },
+            None,
+        )
+        self.assertEqual(result["statusCode"], 200)
+        self.assertIn("Disallow: /", result["body"])
+        self.assertIn("noindex", result["headers"]["x-robots-tag"])
+        response = handler.handler(
+            {
+                "requestContext": {"http": {"method": "GET"}},
+                "rawPath": "/health",
+                "headers": {},
+            },
+            None,
+        )
+        self.assertIn("noindex", response["headers"]["x-robots-tag"])
+
     def test_health_does_not_require_database(self):
         handler._store = None
         self.assertEqual(

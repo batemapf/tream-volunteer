@@ -143,3 +143,78 @@ def fingerprint(email, selection):
 
 def token_hash(token):
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def normalize_sub_jobs(value):
+    """Schedule-configured, optional task preferences; not assignments or quotas."""
+    if not isinstance(value, list) or len(value) > 32:
+        raise Problem("Provide at most 32 optional task choices.")
+    result = []
+    seen = set()
+    for option in value:
+        if not isinstance(option, dict) or set(option) - {
+            "id",
+            "label",
+            "description",
+            "enabled",
+        }:
+            raise Problem("Invalid optional task configuration.")
+        id = option.get("id")
+        label = option.get("label")
+        description = option.get("description", "")
+        enabled = option.get("enabled", True)
+        if (
+            not isinstance(id, str)
+            or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,59}", id)
+            or id in seen
+        ):
+            raise Problem("Task IDs must be unique lowercase identifiers.")
+        if (
+            not isinstance(label, str)
+            or not 1 <= len(label.strip()) <= 80
+            or any(ord(c) < 32 for c in label)
+        ):
+            raise Problem("Task labels must contain 1–80 printable characters.")
+        if (
+            not isinstance(description, str)
+            or len(description) > 240
+            or any(ord(c) < 32 for c in description)
+        ):
+            raise Problem(
+                "Task descriptions must contain at most 240 printable characters."
+            )
+        if not isinstance(enabled, bool):
+            raise Problem("Task enabled must be true or false.")
+        seen.add(id)
+        result.append(
+            {
+                "id": id,
+                "label": label.strip(),
+                "description": description.strip(),
+                "enabled": enabled,
+            }
+        )
+    return result
+
+
+def task_preferences(shift, selection):
+    selected = selection.get("subJobs", [])
+    if (
+        not isinstance(selected, list)
+        or len(selected) > 32
+        or not all(isinstance(id, str) for id in selected)
+        or len(set(selected)) != len(selected)
+    ):
+        raise Problem("Choose each optional task at most once.")
+    options = {
+        option["id"]: option
+        for option in normalize_sub_jobs(shift.get("subJobs", []))
+        if option["enabled"]
+    }
+    if any(id not in options for id in selected):
+        raise Problem(
+            "The task choices have changed. Refresh the page before signing up.",
+            "task_changed",
+            409,
+        )
+    return [{"id": id, "label": options[id]["label"]} for id in selected]

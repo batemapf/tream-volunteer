@@ -80,3 +80,7 @@ A Cognito-protected organizer desk is live at https://dy2majdy4ufxo.cloudfront.n
 The desktop spreadsheet is preserved. At 900px and below, the same rows become compact cards grouped by day, keeping job, hours, staffing coverage, consenting volunteer names and the signup action visible without horizontal data scrolling. Day/job/needs-help filters remain available in a sticky toolbar; the day strip scrolls independently and keeps the selected day visible. The signup dialog uses larger touch targets, 16px input text and a viewport-bounded scroll area. Privacy, backend rules and organizer workflows are unchanged.
 
 Responsive browser regression covers page widths 320–1440px, visible 44px mobile signup actions, local mobile signup/cancellation, and preserved desktop headers. Sample data is used only inside the automated browser fixture; no shared bookings are created by this responsive test.
+
+## November 14, 2026 updates
+
+Added optional per-shift configurable task preferences for lot volunteering; refreshed the public and organizer branding using the original Brent bear, locally hosted Fjalla One heading font, white background and requested full 2026 sale title. Added HTML and HTTP noindex directives and robots.txt. See tasks-branding-and-visibility.md for source assets, configuration/migration semantics and crawler limitations. Preferences remain private; no sub-job staffing quotas or qualification claims are inferred.

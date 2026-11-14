@@ -84,6 +84,13 @@ resource "aws_cloudfront_origin_access_control" "web" {
 }
 resource "aws_cloudfront_response_headers_policy" "security" {
   name = "${local.name}-security"
+  custom_headers_config {
+    items {
+      header   = "X-Robots-Tag"
+      value    = "noindex, nofollow, noarchive, nosnippet, noimageindex"
+      override = true
+    }
+  }
   security_headers_config {
     content_type_options { override = true }
     frame_options {
@@ -99,7 +106,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com https://cognito-idp.us-east-2.amazonaws.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://*.execute-api.us-east-2.amazonaws.com https://cognito-idp.us-east-2.amazonaws.com; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
       override                = true
     }
   }
@@ -200,7 +207,7 @@ resource "aws_apigatewayv2_integration" "api" {
   payload_format_version = "2.0"
 }
 resource "aws_apigatewayv2_route" "routes" {
-  for_each  = toset(["GET /health", "GET /schedule", "POST /bookings", "GET /bookings/{id}", "POST /bookings/{id}/cancel"])
+  for_each  = toset(["GET /health", "GET /robots.txt", "GET /schedule", "POST /bookings", "GET /bookings/{id}", "POST /bookings/{id}/cancel"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"

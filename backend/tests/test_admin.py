@@ -166,6 +166,39 @@ class AdminTests(unittest.TestCase):
             )
         )
 
+    def test_task_configuration_and_exported_preferences(self):
+        self.admin.update_shift(
+            "one",
+            {
+                "revision": 0,
+                "subJobs": [
+                    {
+                        "id": "cashier",
+                        "label": "Checkout",
+                        "description": "Help at the till",
+                    }
+                ],
+            },
+        )
+        self.add(subJobs=["cashier"])
+        overview = self.admin.overview()
+        self.assertEqual(
+            overview["bookings"][0]["subJobPreferences"][0]["label"], "Checkout"
+        )
+        self.assertIn("Task preferences", self.admin.export({}))
+        self.assertIn("Checkout", self.admin.export({}))
+        with self.assertRaises(Problem):
+            self.admin.update_shift(
+                "one",
+                {
+                    "revision": 2,
+                    "subJobs": [
+                        {"id": "same", "label": "A"},
+                        {"id": "same", "label": "B"},
+                    ],
+                },
+            )
+
     def test_export_filters_and_neutralizes_formula(self):
         self.add(name='=HYPERLINK("https://bad")')
         self.add("two", email="other@example.com", name="Someone Else")

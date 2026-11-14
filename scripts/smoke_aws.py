@@ -73,10 +73,17 @@ try:
     assert call("GET", "/health")["emailEnabled"] is False
     before = call("GET", "/schedule")
     assert before["shifts"], "Schedule not seeded"
-    valid = selection()
+    valid = selection("8", start=9, end=11, subJobs=["cashier", "loading"])
     mixed = book([selection("does-not-exist"), valid])
     assert [r["status"] for r in mixed["results"]] == ["failed", "booked"]
     booked = mixed["results"][1]
+    assert [p["label"] for p in booked["subJobPreferences"]] == [
+        "Cashier",
+        "Loading",
+    ], "Task choices not saved"
+    private = store.get("BOOKING#" + booked["bookingId"])
+    assert [p["id"] for p in private["subJobPreferences"]] == ["cashier", "loading"]
+
     assert (
         book([valid])["results"][0]["bookingId"] == booked["bookingId"]
     ), "Retry created duplicate"

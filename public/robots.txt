@@ -1,0 +1,5 @@
+# Keep pages fetchable so crawlers can read the noindex directives.
+# Blocking crawling here can leave externally linked URLs indexed without content.
+# Every page and asset also carries X-Robots-Tag: noindex, nofollow.
+User-agent: *
+Disallow:

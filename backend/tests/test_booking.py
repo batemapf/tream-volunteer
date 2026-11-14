@@ -186,6 +186,47 @@ class BookingTests(unittest.TestCase):
         self.assertEqual(round((result["end"] - result["start"]) * 60), 5)
         self.book(selection(start=9 + 10 / 60, end=9 + 15 / 60))
 
+    def test_optional_task_preferences_validate_and_stay_private(self):
+        self.store.rows["SHIFT#one"]["subJobs"] = [
+            {"id": "cashier", "label": "Cashier"},
+            {"id": "chainsaw", "label": "Chainsaw"},
+            {"id": "retired", "label": "Old choice", "enabled": False},
+        ]
+        result = self.book(selection(subJobs=["cashier", "chainsaw"]))
+        saved = self.store.get("BOOKING#" + result["bookingId"])
+        self.assertEqual(
+            [p["label"] for p in saved["subJobPreferences"]], ["Cashier", "Chainsaw"]
+        )
+        public = public_shift(self.store.get("SHIFT#one"), NOW)
+        self.assertEqual([p["id"] for p in public["subJobs"]], ["cashier", "chainsaw"])
+        self.assertNotIn("subJobPreferences", public["roster"][0])
+        for options in (["unknown"], ["retired"], ["cashier", "cashier"], "cashier"):
+            with self.subTest(options=options), self.assertRaises(Problem):
+                self.book(selection(subJobs=options))
+
+    def test_task_preferences_are_optional_and_snapshot_labels(self):
+        self.store.rows["SHIFT#one"]["subJobs"] = [{"id": "sales", "label": "Sales"}]
+        booked = self.book(selection())
+        self.assertEqual(
+            self.store.get("BOOKING#" + booked["bookingId"])["subJobPreferences"], []
+        )
+        other = self.service.book("parent@example.com", selection("two"))
+        self.assertEqual(other["subJobPreferences"], [])
+        self.store.rows["SHIFT#two"]["subJobs"] = [
+            {"id": "custom", "label": "Original label"}
+        ]
+        # A separate adjacent interval can hold a different volunteer preference.
+        chosen = self.service.book(
+            "parent@example.com", selection("two", start=11, end=12, subJobs=["custom"])
+        )
+        self.store.rows["SHIFT#two"]["subJobs"][0]["label"] = "Renamed label"
+        self.assertEqual(
+            self.store.get("BOOKING#" + chosen["bookingId"])["subJobPreferences"][0][
+                "label"
+            ],
+            "Original label",
+        )
+
     def test_invalid_numbers_and_grid(self):
         for start, end in [(True, 11), (9, float("nan")), (8, 11), (9, 9), (9, 10.25)]:
             with self.subTest(start=start, end=end), self.assertRaises(Problem):

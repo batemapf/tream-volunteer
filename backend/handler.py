@@ -26,6 +26,7 @@ def response(status, body):
             "cache-control": "no-store",
             "x-content-type-options": "nosniff",
             "referrer-policy": "no-referrer",
+            "x-robots-tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
         },
         "body": json.dumps(body),
     }
@@ -116,6 +117,11 @@ def handler(event, context):
                 if path == "/admin/messages":
                     return response(200, admin.save_message(body))
             return response(404, {"message": "Not found."})
+        if method == "GET" and path == "/robots.txt":
+            result = response(200, {})
+            result["headers"]["content-type"] = "text/plain; charset=utf-8"
+            result["body"] = "User-agent: *\nDisallow: /\n"
+            return result
         if method == "GET" and path == "/health":
             return response(
                 200, {"ok": True, "environment": "development", "emailEnabled": False}

@@ -101,6 +101,8 @@ jobs:
         run: node scripts/browser_public_rules.cjs
       - name: Exercise mobile volunteer board
         run: node scripts/browser_mobile.cjs
+      - name: Verify crawler exclusions and branding
+        run: /tmp/tream-deploy-venv/bin/python scripts/check_visibility.py
       - name: API diagnostics after a failed deployment test
         if: ${{ failure() }}
         continue-on-error: true

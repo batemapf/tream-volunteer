@@ -1,0 +1,10 @@
+{
+  "Sales": {
+    "subJobs": [
+      {"id":"cashier","label":"Cashier"},
+      {"id":"chainsaw","label":"Chainsaw"},
+      {"id":"sales","label":"Sales"},
+      {"id":"loading","label":"Loading"}
+    ]
+  }
+}

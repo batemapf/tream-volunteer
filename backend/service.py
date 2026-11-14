@@ -15,6 +15,7 @@ from domain import (
     token_hash,
     validate_interval,
     validate_selection,
+    task_preferences,
 )
 
 
@@ -51,6 +52,7 @@ class BookingService:
                 or shift["endAt"] <= self.clock()
             ):
                 raise Problem("This shift is not accepting signups.", "closed", 409)
+            preferences = task_preferences(shift, selection)
             start, end = selection.get("start"), selection.get("end")
             start, end = validate_interval(shift, start, end)
             if not fits(shift, start, end):
@@ -66,6 +68,7 @@ class BookingService:
                 "status": "booked",
                 "bookingId": booking_id,
                 "shiftId": shift["id"],
+                "subJobPreferences": preferences,
                 "start": start,
                 "end": end,
                 "publicName": public_name(
@@ -80,6 +83,7 @@ class BookingService:
                 "email": email,
                 "name": selection["name"],
                 "publicName": result["publicName"],
+                "subJobPreferences": preferences,
                 "start": start,
                 "end": end,
                 "startAt": epoch(shift["date"], start),
@@ -196,6 +200,11 @@ def public_shift(shift, now):
         "location",
     )
     result = {k: shift[k] for k in allowed if k in shift}
+    result["subJobs"] = [
+        {key: option[key] for key in ("id", "label", "description") if key in option}
+        for option in shift.get("subJobs", [])
+        if option.get("enabled", True)
+    ]
     result["effectiveCapacity"] = effective_capacity(shift)
     result["open"] = shift.get("open", False) and shift["endAt"] > now
     result["roster"] = (
