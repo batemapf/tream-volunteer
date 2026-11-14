@@ -112,3 +112,7 @@ SES configuration-set feedback now reaches an EventBridge-triggered Lambda. Hard
 ### Team email rollout
 
 At the owner’s request, transactional team-test email is enabled for real inboxes using volunteers@brentholidaysale.com and reply-to batemapf@gmail.com. Production SES access and authenticated domain setup are confirmed. Confirmation/change/cancel/resend retain suppression checks and scanner-safe private links. Prior disabled notifications are not replayed. Reserved CI email domains stay disabled. Operational inbox alerts are deferred behind enable_operations_alerts=false so missing SNS provisioning permissions do not block testing; broadcasts remain disabled. Deployment 43613372535 passed 45 unit checks and all live app checks.
+
+### Live volunteer subdomain
+
+https://volunteer.brentholidaysale.com is live on the existing CloudFront distribution and backend. DNS and HTTPS are verified, main Shopify storefront remains at the root domain, new emails use the volunteer host, and old CloudFront management links remain supported. New and legacy exact origins are accepted; lookalikes are rejected. Browser shortcuts remain origin-local. Full migration/email workflow passed (43630637576). Email recipient feedback was a tester-entered address, so no sender/reply-to routing change was needed.
