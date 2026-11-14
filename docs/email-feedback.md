@@ -16,3 +16,7 @@ Operations:
 - The manually dispatched `Test SES bounce and complaint handling` workflow sends only to AWS's success/bounce/complaint simulator addresses, verifies real EventBridge feedback and suppression persistence, and removes its synthetic records. It does not email the owner or volunteers. Unit checks verify that suppressed recipients never reach SES and suppression-read errors fail closed.
 
 Public recipient delivery remains restricted to the owner inbox. This change does not open public email sending or enable organizer broadcasts. The existing confirmation/change/cancel workflow continues to use the same outbox and private management links.
+
+## Verification — November 14, 2026
+
+Deployment 43612025694 passed 44 unit checks plus live application checks. Workflow 43612157859 passed real SES simulator delivery, permanent bounce and complaint publication through EventBridge; suppression was false for delivery and true for bounce/complaint. Synthetic records were removed. No messages were sent to human recipients by that verification workflow.

@@ -104,3 +104,7 @@ Consolidated the public header into a single event H1 with date/location and exp
 ### Owner-only live email and rebooking
 
 Booking, change and cancellation emails are enabled only for the owner's verified SES inbox. Management links work across browsers without a login and never mutate on page visits. Volunteers can change shifts/hours atomically, cancel with confirmation, and resend from a working link. The real AWS/SES and mobile management workflow passed on November 14; see email-testing.md for receipt evidence, scope and remaining public-launch email work. Historical disabled outbox records remain disabled. Organizer broadcast drafts remain unsent.
+
+### Delivery feedback and suppression
+
+SES configuration-set feedback now reaches an EventBridge-triggered Lambda. Hard bounces and complaints create minimal hashed suppressions; mail checks them before sending. Transient failures are recorded without canceling bookings. Private failed-event queue and CloudWatch alarms are deployed. Real AWS simulator delivery/bounce/complaint checks passed (43612157859); see email-feedback.md. Alarm subscriptions and SES provider-side suppression retention cleanup remain before wider public delivery. Owner-only recipient restrictions remain.

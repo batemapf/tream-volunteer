@@ -12,10 +12,12 @@ Changes preserve the booking ID and token, check the booking revision, and atomi
 
 The manually dispatched **Test owner email workflow** books a private-name sample on Saturday morning, waits for SES acceptance, checks read-only management-link visits, moves it to Saturday afternoon through the mobile management UI, waits for the update email, cancels through the mobile UI, and waits for the cancellation email. It leaves the test booking canceled and retains short-lived private delivery receipts. It sends three messages to the owner. Ordinary deployment checks do not send real mail.
 
-Before public email launch: verify a PTA-approved sender, obtain SES production access, add delivery/bounce/complaint event handling and suppression, configure alarms/operator retry tools, and remove the test recipient restriction deliberately. Never enable historical disabled notifications.
+Before public email launch: verify a PTA-approved sender, obtain SES production access, connect owner-monitored failure alerts, complete retention cleanup for SES provider-side suppressions, add operator retry tools, and remove the test recipient restriction deliberately. Never enable historical disabled notifications.
 
 ## Verified November 14, 2026
 
 - Deployment `43608067505`: 39 unit checks, Terraform apply, live API/organizer checks, mobile board and crawler metadata checks passed.
 - Owner-only workflow `43608254198`: SES accepted confirmation, change and cancellation emails; private outbox payloads were cleared after sending. Fresh mobile-browser link viewing made no database change. Browser-driven rebooking released the old shift and claimed the new one; cancellation removed the volunteer from the new roster. The test booking ended canceled.
 - Inbox arrival and actual email-client link handling still require the owner's manual check. No delivery to Amanda or other recipients was attempted.
+
+Bounce/complaint feedback and automatic suppression are now deployed and simulator-verified; see email-feedback.md.
