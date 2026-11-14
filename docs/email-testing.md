@@ -21,3 +21,7 @@ Before public email launch: verify a PTA-approved sender, obtain SES production 
 - Inbox arrival and actual email-client link handling still require the owner's manual check. No delivery to Amanda or other recipients was attempted.
 
 Bounce/complaint feedback and automatic suppression are now deployed and simulator-verified; see email-feedback.md.
+
+## Team rollout verification
+
+Deployment 43613372535 enabled public transactional team-test mode with the verified Brent PTA domain sender and passed all 45 unit checks and deployed application checks. Owner workflow 43613584106 then passed booking → confirmation → mobile link viewing/change → change confirmation → mobile cancellation → cancellation confirmation using the new sender. The sample booking ended canceled. SNS inbox alerts remain deliberately deferred.
