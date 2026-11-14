@@ -1,5 +1,6 @@
 """Private transactional outbox. Only explicitly allowlisted test inboxes receive mail."""
 
+import json
 import os
 import time
 import uuid
@@ -157,6 +158,12 @@ def handler(event, context):
             print({"notificationId": row["id"], "errorType": type(e).__name__})
             if row.get("attempts", 0) < 4:
                 continue  # Lease expiry retries transient failures; no booking rollback.
+        if status == "failed":
+            print(
+                json.dumps(
+                    {"event": "mail_delivery_failed", "notificationId": row["id"]}
+                )
+            )
         store.client.update_item(
             TableName=store.table,
             Key=store.encode({"pk": row["pk"]}),

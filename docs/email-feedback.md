@@ -20,3 +20,9 @@ Public recipient delivery remains restricted to the owner inbox. This change doe
 ## Verification — November 14, 2026
 
 Deployment 43612025694 passed 44 unit checks plus live application checks. Workflow 43612157859 passed real SES simulator delivery, permanent bounce and complaint publication through EventBridge; suppression was false for delivery and true for bounce/complaint. Synthetic records were removed. No messages were sent to human recipients by that verification workflow.
+
+## Inbox alerts
+
+CloudWatch alarm/recovery actions target SNS topic `tream-dev-operations`, with an email subscription for the owner. This route is independent of SES and the booking worker. It covers feedback-handler errors, failed feedback events, worker crashes, and terminal notification-delivery failures. Individual normal bounces do not trigger operations emails. Terminal notification failures emit a structured, contact-free log metric; transient retries do not trigger that metric.
+
+The owner must confirm the AWS SNS subscription in Gmail. Until confirmation, the topic cannot deliver email alerts. Deployment needs the additional narrowly scoped SNS permissions in `infra/bootstrap/deploy-alerts.json` on `tream-github-deploy`; no application runtime SNS permissions are required. After confirmation, validate one ALARM/recovery transition without breaking real delivery. An OK transition means the metric window is healthy; it does not prove a previously failed notification was replayed or a failed-event queue was drained.
