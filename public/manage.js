@@ -63,8 +63,8 @@ function render() {
         `/bookings/${encodeURIComponent(bookingId)}/resend`,
         {},
       );
-      $("#manage-error").textContent = result.queued
-        ? "Confirmation email queued."
+      $("#manage-status").textContent = result.queued
+        ? "Check your inbox for the confirmation email."
         : "Email delivery is restricted to the test inbox.";
     } catch (e) {
       fail(e);
@@ -74,6 +74,7 @@ function render() {
 }
 function edit() {
   $("#manage-error").textContent = "";
+  $("#manage-status").textContent = "";
   const options = shifts.filter((s) => s.open || s.id === booking.shiftId);
   $("#management").innerHTML =
     `<form id="edit"><label for="shift">Shift</label><select id="shift">${options.map((s) => `<option value="${esc(s.id)}" ${s.id === booking.shiftId ? "selected" : ""}>${esc(s.date)} · ${esc(s.name)} · ${fmt(s.start)}–${fmt(s.end)}</option>`).join("")}</select><div class="times"><div><label for="start">Arrive</label><select id="start"></select></div><div><label for="end">Leave</label><select id="end"></select></div></div><div id="tasks"></div><p><button class="primary" id="save">Save changes</button> <button type="button" id="back">Keep current signup</button></p></form>`;
@@ -151,6 +152,7 @@ async function load() {
     api("/schedule"),
   ]);
   $("#manage-error").textContent = "";
+  $("#manage-status").textContent = "";
   render();
 }
 load().catch((e) => {

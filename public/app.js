@@ -455,7 +455,7 @@ function openShift(id) {
   };
 }
 function manage() {
-  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>My signups</h2><p class="sub">Management access is saved on this browser. Test emails include a private management link.</p>${entries.length ? entries.map((p) => `<div class="manage-card"><strong>${esc(jobs.find((j) => String(j.id) === String(p.job)).name)}</strong><p>${days.find((x) => x[0] === jobs.find((j) => String(j.id) === String(p.job)).date)[1]} · ${fmt(p.start)}–${fmt(p.end)}</p><p class="sub">Board name: ${esc(p.publicName)}</p>${apiBase ? `<a href="manage.html#${new URLSearchParams({ booking: p.id, token: p.token })}">View or change signup</a> ` : ""}<button data-cancel="${p.id}">Cancel signup</button></div>`).join("") : "<p>No demo signups yet. Choose a shift on the board to join.</p>"}`;
+  modal.innerHTML = `<button class="close" aria-label="Close">×</button><h2>My signups</h2><p class="sub">Use your confirmation email to view or change a signup on another device.</p>${entries.length ? entries.map((p) => `<div class="manage-card"><strong>${esc(jobs.find((j) => String(j.id) === String(p.job)).name)}</strong><p>${days.find((x) => x[0] === jobs.find((j) => String(j.id) === String(p.job)).date)[1]} · ${fmt(p.start)}–${fmt(p.end)}</p><p class="sub">Board name: ${esc(p.publicName)}</p>${apiBase ? `<a href="manage.html#${new URLSearchParams({ booking: p.id, token: p.token })}">View or change signup</a> ` : ""}<button data-cancel="${p.id}">Cancel signup</button></div>`).join("") : "<p>No demo signups yet. Choose a shift on the board to join.</p>"}`;
   if (!modal.open) modal.showModal();
   closeWire();
   modal.querySelectorAll("[data-cancel]").forEach(
