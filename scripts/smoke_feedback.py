@@ -21,7 +21,7 @@ ids = []
 try:
     for recipient, kind, suppressed in checks:
         result = ses.send_email(
-            FromEmailAddress="batemapf@gmail.com",
+            FromEmailAddress="feedback-test@brentholidaysale.com",
             ConfigurationSetName=configuration,
             Destination={"ToAddresses": [recipient]},
             Content={

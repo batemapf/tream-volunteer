@@ -1,12 +1,12 @@
 # Bounce, complaint and delivery feedback
 
-Tream mail uses SES configuration set `tream-dev`. Its event destination publishes delivery, bounce, complaint, rejection, rendering-failure and delivery-delay events onto the regional default EventBridge bus. The Tream rule matches its configuration-set tag so unrelated applications in this AWS account are not processed. No open/click tracking is enabled.
+Tream mail uses SES configuration set `tream-dev`. Its event destination publishes delivery, bounce, complaint, rejection, rendering-failure and delivery-delay events onto the regional default EventBridge bus. The Tream rule matches its configuration-set tag so unrelated applications in this AWS account are not processed. No open/click tracking is enabled. The sale domain uses structured feedback rather than forwarded bounce emails; the shared Gmail identity's forwarding settings are unchanged.
 
 The feedback Lambda stores a minimal private provider receipt for 30 days. Permanent bounces and complaints create a suppression keyed by SHA-256 of the normalized email address. The suppression contains a reason, timestamp and expiry, not a plaintext contact address. Suppressions expire after 27 calendar months; soft/undetermined bounces and delivery delays do not permanently suppress. Duplicate events are safe. Bookings and roster entries are never canceled by email failures.
 
 Before every eligible send, the worker performs a strongly consistent suppression read. Suppressed recipients are skipped and their outbox payload is cleared. If the suppression lookup fails, sending fails closed and the normal retry policy applies. Already in-flight sends cannot be recalled; feedback is asynchronous. SES configuration-set suppression for BOUNCE and COMPLAINT provides an additional provider-side layer without changing the account's default configuration for other applications.
 
-EventBridge target failures and exhausted Lambda processing retries go to encrypted SQS queue `tream-dev-feedback-failures`, retained for 14 days. CloudWatch alarms `tream-dev-feedback-failures` and `tream-dev-feedback-errors` expose processing failures. These alarms currently appear in CloudWatch; no email/SMS alarm subscription is configured. Before wider launch, connect an owner-monitored alert destination.
+EventBridge target failures and exhausted Lambda processing retries go to encrypted SQS queue `tream-dev-feedback-failures`, retained for 14 days. CloudWatch alarms `tream-dev-feedback-failures` and `tream-dev-feedback-errors` expose processing failures. These alarms currently appear in CloudWatch; no email/SMS alarm subscription is configured. Before wider launch, connect an owner-monitored alert destination and include SES provider-side suppression entries in the retention cleanup (SES does not expire those automatically).
 
 Operations:
 

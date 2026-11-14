@@ -111,3 +111,10 @@ resource "aws_cloudwatch_metric_alarm" "feedback_errors" {
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
 }
+# The sale domain uses structured feedback instead of forwarded bounce emails.
+# Leave the shared Gmail identity's existing forwarding behavior untouched.
+resource "aws_sesv2_email_identity_feedback_attributes" "holiday_sale" {
+  email_identity           = aws_sesv2_email_identity.holiday_sale.email_identity
+  email_forwarding_enabled = false
+  depends_on               = [aws_sesv2_configuration_set_event_destination.feedback]
+}
