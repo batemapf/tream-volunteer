@@ -8,7 +8,7 @@ provider "aws" {
 }
 variable "enable_site_domain" {
   type        = bool
-  default     = false
+  default     = true
   description = "Activate after ACM's DNS validation record has been added in GoDaddy."
 }
 locals {

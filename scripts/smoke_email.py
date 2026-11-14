@@ -61,12 +61,13 @@ def wait_mail(kind):
     raise AssertionError("Timed out waiting for " + kind + " mail")
 
 
-def browser(action):
+def browser(action, site=None):
     subprocess.run(
         ["node", "scripts/browser_email.cjs"],
         check=True,
         env={
             **os.environ,
+            "SITE_URL": site or origin,
             "BOOKING_ID": booking_id,
             "MANAGE_TOKEN": token,
             "EMAIL_ACTION": action,
@@ -101,6 +102,8 @@ try:
     wait_mail("confirmation")
     before = store.get("BOOKING#" + booking_id)
     browser("view")
+    if os.environ.get("LEGACY_SITE_URL"):
+        browser("view", os.environ["LEGACY_SITE_URL"])
     assert store.get("BOOKING#" + booking_id) == before, "Opening link mutated booking"
     browser("change")
     changed = store.get("BOOKING#" + booking_id)

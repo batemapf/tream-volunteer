@@ -17,7 +17,8 @@ jobs:
     env:
       AWS_REGION: us-east-2
       TABLE_NAME: tream-dev-data
-      SITE_URL: https://dy2majdy4ufxo.cloudfront.net
+      SITE_URL: https://volunteer.brentholidaysale.com
+      LEGACY_SITE_URL: https://dy2majdy4ufxo.cloudfront.net
       API_URL: https://saocxbe6xa.execute-api.us-east-2.amazonaws.com
       PLAYWRIGHT_MODULE: /tmp/tream-browser/node_modules/playwright
       PLAYWRIGHT_BROWSERS_PATH: /tmp/tream-playwright
