@@ -40,6 +40,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("heading", { name: "Organizer desk", exact: true })
       .waitFor({ timeout: 30000 });
+    await page.getByRole("button", { name: "Messages", exact: true }).click();
+    if (await page.locator('#recipient-mode option[value="selected"]').count())
+      throw Error("Empty selected-volunteers option should be hidden");
+    await page
+      .getByRole("button", { name: "Coverage & shifts", exact: true })
+      .click();
     await page.locator('[data-edit="0"]').click();
     await page.getByRole("button", { name: "Save shift", exact: true }).click();
     await page.locator("#dialog").waitFor({ state: "hidden", timeout: 30000 });
@@ -49,6 +55,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("button", { name: "Message selected (2)", exact: true })
       .click();
+    if (
+      (await page
+        .locator('#recipient-mode option[value="selected"]')
+        .textContent()) !== "Selected volunteers (2)"
+    )
+      throw Error("Selected recipients option missing");
     await page.locator("#subject").fill("Browser smoke draft");
     await page
       .locator("#message-body")
@@ -78,6 +90,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
         .click();
       await page.waitForTimeout(500);
     }
+    await page.getByRole("button", { name: "Volunteers", exact: true }).click();
+    await page.locator("#select-all").uncheck();
+    await page.getByRole("button", { name: "Messages", exact: true }).click();
+    if (await page.locator('#recipient-mode option[value="selected"]').count())
+      throw Error("Cleared selection should hide option");
     await saved
       .getByRole("button", { name: "Load draft", exact: true })
       .click();

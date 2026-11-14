@@ -481,7 +481,7 @@
   }
   function renderMessages() {
     $("#pane").innerHTML =
-      `<div class="a-message"><section class="a-card"><h2>Compose a team update</h2><p class="sub">One volunteer, a group, or everyone. Preview the individual recipient list before saving.</p><form id="message-form"><label for="recipient-mode">Recipients</label><select id="recipient-mode"><option value="selected" ${selected.size ? "selected" : ""}>Selected volunteers (${selected.size})</option><option value="group">A group</option><option value="all" ${selected.size ? "" : "selected"}>All active volunteers</option></select><div id="group-fields" hidden><label for="group-field">Group by</label><select id="group-field"><option value="date">Day</option><option value="role">Job type</option><option value="shiftId">Shift</option></select><label for="group-value">Choose group</label><select id="group-value"></select></div><label for="subject">Subject</label><input id="subject" required maxlength="180" placeholder="Saturday morning: where to meet"><label for="message-body">Message</label><textarea id="message-body" required maxlength="8000" placeholder="Hi Tream…"></textarea><p class="a-error" id="message-error" role="alert"></p><button class="primary full">Preview recipients</button></form></section><section class="a-card" id="message-preview"><h2>Recipient preview</h2><p class="sub">Email is disabled. You can preview and save a private draft; nothing will be sent or automatically queued for later.</p></section></div><section class="a-card" id="saved-drafts"><h2>Saved drafts</h2><p class="sub">Loading…</p></section>`;
+      `<div class="a-message"><section class="a-card"><h2>Compose a team update</h2><p class="sub">One volunteer, a group, or everyone. Preview the individual recipient list before saving.</p><form id="message-form"><label for="recipient-mode">Recipients</label><select id="recipient-mode">${selected.size ? `<option value="selected" selected>Selected volunteers (${selected.size})</option>` : ""}<option value="group">A group</option><option value="all" ${selected.size ? "" : "selected"}>All active volunteers</option></select><div id="group-fields" hidden><label for="group-field">Group by</label><select id="group-field"><option value="date">Day</option><option value="role">Job type</option><option value="shiftId">Shift</option></select><label for="group-value">Choose group</label><select id="group-value"></select></div><label for="subject">Subject</label><input id="subject" required maxlength="180" placeholder="Saturday morning: where to meet"><label for="message-body">Message</label><textarea id="message-body" required maxlength="8000" placeholder="Hi Tream…"></textarea><p class="a-error" id="message-error" role="alert"></p><button class="primary full">Preview recipients</button></form></section><section class="a-card" id="message-preview"><h2>Recipient preview</h2><p class="sub">Email is disabled. You can preview and save a private draft; nothing will be sent or automatically queued for later.</p></section></div><section class="a-card" id="saved-drafts"><h2>Saved drafts</h2><p class="sub">Loading…</p></section>`;
     const groups = () => {
       const field = $("#group-field").value;
       const values =
@@ -529,16 +529,37 @@
             (b.onclick = () => {
               const draft = drafts.find((d) => d.id === b.dataset.loadDraft),
                 selector = draft.selector || { mode: "all" };
+              let mode = selector.mode;
               if (selector.mode === "selected") {
                 const active = new Set(data.bookings.map((b) => b.id));
                 selected = new Set(
                   selector.bookingIds.filter((id) => active.has(id)),
                 );
-                $('#recipient-mode option[value="selected"]').textContent =
-                  "Selected volunteers (" + selected.size + ")";
+                $('#recipient-mode option[value="selected"]')?.remove();
+                if (selected.size) {
+                  $("#recipient-mode").add(
+                    new Option(
+                      "Selected volunteers (" + selected.size + ")",
+                      "selected",
+                    ),
+                    0,
+                  );
+                } else {
+                  mode = "";
+                  const placeholder = new Option(
+                    "Choose recipients",
+                    "",
+                    false,
+                    true,
+                  );
+                  placeholder.disabled = true;
+                  $("#recipient-mode").add(placeholder, 0);
+                  $("#message-error").textContent =
+                    "Those selected signups are no longer active. Choose recipients.";
+                }
               }
-              $("#recipient-mode").value = selector.mode;
-              $("#group-fields").hidden = selector.mode !== "group";
+              $("#recipient-mode").value = mode;
+              $("#group-fields").hidden = mode !== "group";
               if (selector.mode === "group") {
                 $("#group-field").value = selector.field;
                 groups();
