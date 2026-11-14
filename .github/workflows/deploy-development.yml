@@ -60,6 +60,8 @@ jobs:
       - name: Apply development infrastructure
         working-directory: infra/app
         run: terraform apply -input=false -lock-timeout=120s deployment.tfplan
+      - name: Show email DNS records
+        run: terraform -chdir=infra/app output -json email_dns_records
       - name: Prepare application tooling
         run: |
           python3 -m venv /tmp/tream-deploy-venv
