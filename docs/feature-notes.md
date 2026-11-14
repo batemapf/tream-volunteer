@@ -116,3 +116,7 @@ At the owner’s request, transactional team-test email is enabled for real inbo
 ### Live volunteer subdomain
 
 https://volunteer.brentholidaysale.com is live on the existing CloudFront distribution and backend. DNS and HTTPS are verified, main Shopify storefront remains at the root domain, new emails use the volunteer host, and old CloudFront management links remain supported. New and legacy exact origins are accepted; lookalikes are rejected. Browser shortcuts remain origin-local. Full migration/email workflow passed (43630637576). Email recipient feedback was a tester-entered address, so no sender/reply-to routing change was needed.
+
+### Email-only signup records and /admin
+
+Removed browser-local My signups and receipt storage. Find my signups now emails active upcoming commitments for all participants sharing the entered address, with generic public responses, abuse limits, and 24-hour private recovery links. Primary confirmation links remain valid. Signup success shows the submitted address and immediate management link. /admin now serves the protected organizer app; /admin/ redirects there and organizer.html stays usable. Cognito account creation remains owner-managed in tream-dev-organizers (Ohio), with organizers group membership and a temporary-password first-login challenge. Deployment 43632198060 and real recovery/email workflow 43633461269 passed; see email-recovery.md and organizer-guide.md.

@@ -20,3 +20,5 @@ Signup data lives in the same AWS table and does not move. Browser-local My sign
 Both public CNAMEs were verified, the certificate issued, and enable_site_domain is now true. Deployment 43630178415 passed Terraform apply, all 46 unit checks, and live public/API/organizer/mobile/noindex checks at the canonical subdomain. HTTPS checks passed at both new and legacy hosts; the root domain still serves Shopify. Both exact origins passed non-mutating POST validation checks with matching CORS headers.
 
 Owner workflow 43630637576 passed booking/confirmation, private management-link viewing through both new and legacy hosts, mobile rebooking/change email, and cancellation/cancellation email. The synthetic booking ended canceled. New outgoing management links use the volunteer subdomain. The reported store Gmail recipient was confirmed to have been entered by a tester; sender and Reply-To remain as configured.
+
+Browser-local My signups has since been removed in favor of Find my signups email recovery. Users no longer depend on browser-origin shortcuts. The organizer URL is now https://volunteer.brentholidaysale.com/admin.

@@ -11,3 +11,7 @@ Recovery links use a fresh 256-bit token. Only its hash and contact hash persist
 The raw recovery token and email/name summary exist only in the private SSE-encrypted outbox until send/final failure; then they are removed. Unsent recovery payloads expire within 24 hours. Large family summaries are split into emails of at most 40 commitments. Recovery creates no organizer account and uses no password or browser-persisted account state.
 
 For a mistyped email or an inaccessible inbox, the public UI offers the organizer contact address. Organizer accounts are separately managed in Cognito; the organizer page is served at /admin, with /admin/ redirecting there and the original organizer.html path retained. Static page access never authorizes private organizer API calls.
+
+## Verified November 14, 2026
+
+Deployment 43632198060 passed all 50 unit checks and live API, /admin Cognito login, mobile and noindex checks. Existing booking contact hashes were backfilled during deployment. Real email workflow 43633461269 passed a fresh-browser Find my signups request, SES summary-email acceptance and payload cleanup, original new/legacy-host management-link viewing, editing/change email, and cancellation/cancellation email. Shared-email participants, cross-household denial, recovery expiry, rate limits, and preservation of primary links are covered by unit checks. A 320px API-mode browser check separately verified the immediate success-screen management link and submitted email address without persistent browser credentials.
