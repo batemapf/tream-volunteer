@@ -22,15 +22,14 @@ resource "aws_iam_role_policy" "mail" {
   })
 }
 resource "aws_lambda_function" "mail" {
-  function_name                  = "${local.name}-mail"
-  role                           = aws_iam_role.mail.arn
-  handler                        = "mail.handler"
-  runtime                        = "python3.13"
-  filename                       = data.archive_file.api.output_path
-  source_code_hash               = data.archive_file.api.output_base64sha256
-  memory_size                    = 256
-  timeout                        = 25
-  reserved_concurrent_executions = 1
+  function_name    = "${local.name}-mail"
+  role             = aws_iam_role.mail.arn
+  handler          = "mail.handler"
+  runtime          = "python3.13"
+  filename         = data.archive_file.api.output_path
+  source_code_hash = data.archive_file.api.output_base64sha256
+  memory_size      = 256
+  timeout          = 25
   environment {
     variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "batemapf@gmail.com", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_TEST_RECIPIENTS = "batemapf@gmail.com" }
   }

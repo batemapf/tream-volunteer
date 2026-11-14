@@ -84,6 +84,22 @@ def handler(event, context):
 
     store, ses = DynamoStore(), boto3.client("sesv2")
     now = int(time.time())
+    # This small AWS account cannot reserve Lambda concurrency. A table lease
+    # serializes deliveries across invocations and preserves the 1/sec SES limit.
+    try:
+        store.client.update_item(
+            TableName=store.table,
+            Key=store.encode({"pk": "MAILWORKER#LEASE"}),
+            UpdateExpression="SET leaseUntil = :lease, expiresAt = :expiry",
+            ConditionExpression="attribute_not_exists(leaseUntil) OR leaseUntil <= :now",
+            ExpressionAttributeValues=store.encode(
+                {":lease": now + 30, ":expiry": now + 120, ":now": now}
+            ),
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+            return {"sent": 0}
+        raise
     pending = store.client.query(
         TableName=store.table,
         IndexName="recordType-createdAt",
