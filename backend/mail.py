@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 from urllib.parse import urlencode
+from feedback import is_suppressed
 
 
 def enabled():
@@ -129,12 +130,17 @@ def handler(event, context):
             raise
         status, message_id = "failed", ""
         try:
-            if row["expiresAt"] <= now or not allowed(row["recipient"]):
+            if (
+                row["expiresAt"] <= now
+                or not allowed(row["recipient"])
+                or is_suppressed(store, row["recipient"], now)
+            ):
                 status = "suppressed"
             else:
                 subject, body = content(row)
                 result = ses.send_email(
                     FromEmailAddress=os.environ["EMAIL_FROM"],
+                    ConfigurationSetName=os.environ["EMAIL_CONFIGURATION_SET"],
                     ReplyToAddresses=[os.environ["EMAIL_REPLY_TO"]],
                     Destination={"ToAddresses": [row["recipient"]]},
                     Content={

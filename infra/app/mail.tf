@@ -15,8 +15,8 @@ resource "aws_iam_role_policy" "mail" {
     Version = "2012-10-17"
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:Query"], Resource = "${aws_dynamodb_table.data.arn}/index/recordType-createdAt" },
-      { Effect = "Allow", Action = ["dynamodb:UpdateItem"], Resource = aws_dynamodb_table.data.arn },
-      { Effect = "Allow", Action = ["ses:SendEmail"], Resource = "arn:aws:ses:us-east-2:${data.aws_caller_identity.current.account_id}:identity/batemapf@gmail.com", Condition = { StringEquals = { "ses:FromAddress" = "batemapf@gmail.com" }, "ForAllValues:StringEquals" = { "ses:Recipients" = ["batemapf@gmail.com"] } } },
+      { Effect = "Allow", Action = ["dynamodb:UpdateItem", "dynamodb:GetItem"], Resource = aws_dynamodb_table.data.arn },
+      { Effect = "Allow", Action = ["ses:SendEmail"], Resource = ["arn:aws:ses:us-east-2:${data.aws_caller_identity.current.account_id}:identity/batemapf@gmail.com", aws_sesv2_configuration_set.mail.arn], Condition = { StringEquals = { "ses:FromAddress" = "batemapf@gmail.com" }, "ForAllValues:StringEquals" = { "ses:Recipients" = ["batemapf@gmail.com"] } } },
       { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.mail.arn}:*" }
     ]
   })
@@ -31,7 +31,7 @@ resource "aws_lambda_function" "mail" {
   memory_size      = 256
   timeout          = 25
   environment {
-    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_ENABLED = "true", EMAIL_FROM = "batemapf@gmail.com", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_TEST_RECIPIENTS = "batemapf@gmail.com" }
+    variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_CONFIGURATION_SET = aws_sesv2_configuration_set.mail.configuration_set_name, EMAIL_ENABLED = "true", EMAIL_FROM = "batemapf@gmail.com", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_TEST_RECIPIENTS = "batemapf@gmail.com" }
   }
   depends_on = [aws_iam_role_policy.mail]
 }

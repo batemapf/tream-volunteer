@@ -1,0 +1,37 @@
+name: Test SES bounce and complaint handling
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tream-ses-feedback-test
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install tooling
+        run: |
+          python3 -m venv /tmp/tream-feedback
+          /tmp/tream-feedback/bin/pip install 'boto3>=1.35,<2'
+      - name: Exercise real SES feedback with simulator-only recipients
+        run: /tmp/tream-feedback/bin/python scripts/smoke_feedback.py
+      - name: Safe feedback failure diagnostics
+        if: failure()
+        run: |
+          aws logs tail /aws/lambda/tream-dev-feedback --since 20m --format short
+          aws sqs get-queue-attributes --queue-url https://sqs.us-east-2.amazonaws.com/620144980370/tream-dev-feedback-failures --attribute-names ApproximateNumberOfMessages
