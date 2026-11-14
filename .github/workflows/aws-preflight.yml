@@ -98,6 +98,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          aws sesv2 list-email-identities --query 'EmailIdentities[].{Identity:IdentityName,Type:IdentityType,Verified:SendingEnabled}' --output json
           aws sesv2 get-account --query '{ProductionAccessEnabled:ProductionAccessEnabled,SendingEnabled:SendingEnabled,SendQuota:SendQuota}' --output json
           {
             echo '## AWS connection and SES checks'
