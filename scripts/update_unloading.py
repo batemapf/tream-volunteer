@@ -1,6 +1,7 @@
 """Approved one-time unloading correction; atomic, idempotent, no contact logging."""
 
 import copy
+import os
 import secrets
 import sys
 import time
@@ -15,6 +16,83 @@ from recovery import contact_hash
 from mail import notification
 
 store = DynamoStore()
+# This approved migration creates live notifications just like the deployed API.
+os.environ["EMAIL_ENABLED"] = "true"
+os.environ["EMAIL_DELIVERY_MODE"] = "public"
+NOTICE = "The unloading shift has been corrected to 4–6 p.m. on December 2. Your signup has been updated. If this time does not work for you, please change or cancel using the link below."
+
+
+def repair_disabled_notices():
+    audit = store.get("AUDIT#unloading-time-correction-2026")
+    if not audit or audit.get("noticeRepairVersion"):
+        return
+    previous = store.get_many(["MAIL#" + id for id in audit.get("notificationIds", [])])
+    disabled = [row for row in previous if row and row["status"] == "disabled"]
+    if not disabled:
+        return
+    replacements = {}
+    operations = []
+    for row in disabled:
+        booking = store.get("BOOKING#" + row["bookingId"])
+        assert (
+            booking and booking["status"] == "active" and booking["shiftId"] == "1"
+        ), "Unloading changed before notice repair; review required"
+        shift = store.get("SHIFT#1")
+        token = secrets.token_urlsafe(32)
+        grant = {
+            "pk": "RECOVERYACCESS#" + token_hash(token),
+            "contactHash": contact_hash(booking["email"]),
+            "bookingId": booking["id"],
+            "expiresAt": booking["expiresAt"],
+        }
+        outbox = notification(booking, shift, "changed", token)
+        assert (
+            outbox["status"] == "pending"
+        ), "Approved correction recipient cannot receive email; verify contact address"
+        outbox["notice"] = NOTICE
+        replacements[row["id"]] = outbox["id"]
+        operations.extend(
+            [
+                store.put_op(grant, "attribute_not_exists(pk)"),
+                store.put_op(outbox, "attribute_not_exists(pk)"),
+            ]
+        )
+        operations.append(
+            {
+                "Update": {
+                    "TableName": store.table,
+                    "Key": store.encode({"pk": booking["pk"]}),
+                    "UpdateExpression": "SET lastNotificationId = :notice",
+                    "ConditionExpression": "#status = :active AND shiftId = :shift AND revision = :revision",
+                    "ExpressionAttributeNames": {"#status": "status"},
+                    "ExpressionAttributeValues": store.encode(
+                        {
+                            ":notice": outbox["id"],
+                            ":active": "active",
+                            ":shift": "1",
+                            ":revision": booking.get("revision", 0),
+                        }
+                    ),
+                }
+            }
+        )
+    updated = {
+        **audit,
+        "noticeRepairVersion": 1,
+        "initialNotificationIds": audit["notificationIds"],
+        "notificationIds": [
+            replacements.get(id, id) for id in audit["notificationIds"]
+        ],
+    }
+    operations.append(
+        store.put_op(updated, "attribute_not_exists(noticeRepairVersion)")
+    )
+    store.transact(operations)
+    print(
+        "Approved unloading correction notifications enabled; signup hours and original management links preserved."
+    )
+
+
 for attempt in range(8):
     old = store.get("SHIFT#1")
     if not old:
@@ -23,6 +101,7 @@ for attempt in range(8):
         assert all(
             16 <= r["start"] < r["end"] <= 18 for r in old["roster"]
         ), "Existing unloading hours need review"
+        repair_disabled_notices()
         print("Unloading is already 4–6 p.m.; no duplicate notifications created.")
         break
     assert (old["date"], old["start"], old["end"]) == (
@@ -86,9 +165,7 @@ for attempt in range(8):
         op["Put"]["ExpressionAttributeNames"] = {"#status": "status"}
         operations.append(op)
         if outbox["status"] == "pending":
-            outbox["notice"] = (
-                "The unloading shift has been corrected to 4–6 p.m. on December 2. Your signup has been updated. If this time does not work for you, please change or cancel using the link below."
-            )
+            outbox["notice"] = NOTICE
         operations.extend(
             [
                 store.put_op(grant, "attribute_not_exists(pk)"),

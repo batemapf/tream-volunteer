@@ -48,7 +48,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
   try {
     await page.goto(process.env.SITE_URL || "http://127.0.0.1:8000");
     await page.getByRole("button", { name: "Tue 01", exact: true }).waitFor();
-    await page.locator("#jobfilter").selectOption("Custom crew");
     await page
       .getByRole("button", { name: "<b>Setup & help</b>", exact: true })
       .click();

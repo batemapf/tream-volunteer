@@ -129,12 +129,6 @@ async function loadSchedule() {
         day: "numeric",
       }),
     ]);
-    const roles = [...new Set(jobs.map((j) => j.role))].sort();
-    if (!roles.includes(role)) role = "all";
-    $("#jobfilter").innerHTML =
-      '<option value="all">All jobs</option>' +
-      roles.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join("");
-    $("#jobfilter").value = role;
     if (day !== "all" && !days.some(([d]) => d === day)) day = "all";
     seed = jobs.flatMap((j) => j.roster.map((p) => ({ ...p, job: j.id })));
     render();
@@ -151,7 +145,6 @@ function secureToken() {
 }
 let entries = []; // In-memory sample mode only; reset on page reload.
 let day = "all",
-  role = "all",
   onlyNeed = false;
 function people(id) {
   return [
@@ -201,7 +194,6 @@ function render() {
   const shown = jobs.filter(
     (j) =>
       (day === "all" || day === j.date) &&
-      (role === "all" || role === j.role) &&
       (!onlyNeed || stats(j).min < j.capacity),
   );
   $("#days").innerHTML = [
@@ -449,10 +441,6 @@ function findSignups() {
     }
   };
 }
-$("#jobfilter").onchange = (e) => {
-  role = e.target.value;
-  render();
-};
 $("#need").onchange = (e) => {
   onlyNeed = e.target.checked;
   render();
