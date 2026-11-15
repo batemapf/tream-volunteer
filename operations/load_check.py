@@ -478,6 +478,18 @@ def diagnostics():
                 ],
             }
         )
+    reports = (
+        boto3.client("logs")
+        .filter_log_events(
+            logGroupName="/aws/lambda/tream-dev-api",
+            startTime=int((time.time() - 900) * 1000),
+            filterPattern='"REPORT RequestId"',
+            limit=100,
+        )
+        .get("events", [])
+    )
+    report_messages = [row["message"] for row in reports]
+    print(json.dumps({"lambdaTimingReports": report_messages}), flush=True)
     record(
         "production_read_diagnostics",
         {"sequentialCurl": timings, "recentMetrics": metrics},

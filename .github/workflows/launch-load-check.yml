@@ -2,6 +2,10 @@ name: Bounded launch load check
 on:
   workflow_dispatch:
     inputs:
+      production_only:
+        description: Repeat only the bounded read-only ramp; no isolated resources or writes
+        type: boolean
+        default: false
       diagnostics_only:
         description: Sequential read timings and CloudWatch metrics only; no burst
         type: boolean
@@ -38,20 +42,20 @@ jobs:
       - name: Read-only production health baseline
         run: /tmp/tream-load/bin/python scripts/operations_health.py
       - name: Isolated DynamoDB booking and mock email checks
-        if: ${{ !inputs.diagnostics_only }}
+        if: ${{ !inputs.diagnostics_only && !inputs.production_only }}
         run: /tmp/tream-load/bin/python operations/load_check.py isolated
       - name: Remove only this run's temporary test table
-        if: ${{ always() && !inputs.diagnostics_only }}
+        if: ${{ always() && !inputs.diagnostics_only && !inputs.production_only }}
         run: |
           if [ -x /tmp/tream-load/bin/python ]; then
             /tmp/tream-load/bin/python operations/load_check.py cleanup
           fi
+      - name: Diagnose read latency without increasing traffic
+        if: inputs.diagnostics_only || inputs.production_only
+        run: /tmp/tream-load/bin/python operations/load_check.py diagnostics
       - name: Bounded read-only production schedule ramp
         if: ${{ !inputs.diagnostics_only }}
         run: /tmp/tream-load/bin/python operations/load_check.py production
-      - name: Diagnose read latency without increasing traffic
-        if: inputs.diagnostics_only
-        run: /tmp/tream-load/bin/python operations/load_check.py diagnostics
       - name: Read-only production health after checks
         if: always()
         run: |
