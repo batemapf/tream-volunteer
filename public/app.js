@@ -195,7 +195,7 @@ function render() {
     ["all", "All days"],
     ...days.map(([d, l]) => [
       d,
-      l.split(",")[0].slice(0, 3) + " " + d.slice(-2),
+      l.split(",")[0].slice(0, 3) + " " + d.slice(5).replace("-", "/"),
     ]),
   ]
     .map(
