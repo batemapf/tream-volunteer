@@ -378,9 +378,117 @@ def production():
         time.sleep(5)  # Short rest between stages.
 
 
+def diagnostics():
+    from datetime import datetime, timedelta, timezone
+    import subprocess
+
+    timings = []
+    for _ in range(3):
+        result = subprocess.run(
+            [
+                "curl",
+                "--silent",
+                "--show-error",
+                "--output",
+                "/dev/null",
+                "--connect-timeout",
+                "5",
+                "--max-time",
+                "10",
+                "--write-out",
+                '{"status":%{http_code},"dns":%{time_namelookup},"connect":%{time_connect},"tls":%{time_appconnect},"firstByte":%{time_starttransfer},"total":%{time_total}}',
+                "https://saocxbe6xa.execute-api.us-east-2.amazonaws.com/schedule",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        timings.append(
+            {
+                "exitCode": result.returncode,
+                "timing": result.stdout,
+                "error": result.stderr[:250],
+            }
+        )
+        time.sleep(1)
+    metrics = []
+    cw = boto3.client("cloudwatch")
+    for namespace, name, dims, statistic in [
+        (
+            "AWS/Lambda",
+            "Duration",
+            [{"Name": "FunctionName", "Value": "tream-dev-api"}],
+            ["Average", "Maximum"],
+        ),
+        (
+            "AWS/Lambda",
+            "ConcurrentExecutions",
+            [{"Name": "FunctionName", "Value": "tream-dev-api"}],
+            ["Maximum"],
+        ),
+        (
+            "AWS/Lambda",
+            "Throttles",
+            [{"Name": "FunctionName", "Value": "tream-dev-api"}],
+            ["Sum"],
+        ),
+        (
+            "AWS/ApiGateway",
+            "Latency",
+            [
+                {"Name": "ApiId", "Value": "saocxbe6xa"},
+                {"Name": "Stage", "Value": "$default"},
+            ],
+            ["Average", "Maximum"],
+        ),
+        (
+            "AWS/ApiGateway",
+            "IntegrationLatency",
+            [
+                {"Name": "ApiId", "Value": "saocxbe6xa"},
+                {"Name": "Stage", "Value": "$default"},
+            ],
+            ["Average", "Maximum"],
+        ),
+        (
+            "AWS/ApiGateway",
+            "5xx",
+            [
+                {"Name": "ApiId", "Value": "saocxbe6xa"},
+                {"Name": "Stage", "Value": "$default"},
+            ],
+            ["Sum"],
+        ),
+    ]:
+        points = cw.get_metric_statistics(
+            Namespace=namespace,
+            MetricName=name,
+            Dimensions=dims,
+            StartTime=datetime.now(timezone.utc) - timedelta(minutes=15),
+            EndTime=datetime.now(timezone.utc),
+            Period=60,
+            Statistics=statistic,
+        )["Datapoints"]
+        metrics.append(
+            {
+                "namespace": namespace,
+                "metric": name,
+                "points": [
+                    {k: str(v) if k == "Timestamp" else v for k, v in row.items()}
+                    for row in points
+                ],
+            }
+        )
+    record(
+        "production_read_diagnostics",
+        {"sequentialCurl": timings, "recentMetrics": metrics},
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=["isolated", "production", "cleanup"])
+    parser.add_argument(
+        "mode", choices=["isolated", "production", "cleanup", "diagnostics"]
+    )
     args = parser.parse_args()
     if RESULT.exists():
         RESULTS.update(json.loads(RESULT.read_text()))
