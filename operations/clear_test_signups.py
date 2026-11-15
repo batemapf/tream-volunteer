@@ -126,7 +126,7 @@ def main():
                 )
                 store.client.put_item(TableName=store.table, Item=store.encode(clean))
                 continue
-            if kind == "AUDIT" and row.get("action") == "shift_edited":
+            if kind == "AUDIT" and row.get("kind") == "shift_edited":
                 continue
             store.client.delete_item(
                 TableName=store.table, Key=store.encode({"pk": key})
