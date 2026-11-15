@@ -30,6 +30,7 @@ jobs:
       - name: Read live Lambda and API capacity
         run: |
           aws lambda get-account-settings --query '{Limits:AccountLimit,Usage:AccountUsage}' --output json
+          aws lambda get-function-configuration --function-name tream-dev-api --query '{MemoryMB:MemorySize,Timeout:Timeout,State:State,LastUpdateStatus:LastUpdateStatus}' --output json
           aws lambda get-function-concurrency --function-name tream-dev-api
           aws lambda get-function-concurrency --function-name tream-dev-mail
           aws apigatewayv2 get-stage --api-id saocxbe6xa --stage-name '$default' --query DefaultRouteSettings --output json

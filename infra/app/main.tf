@@ -205,7 +205,7 @@ resource "aws_lambda_function" "api" {
   runtime          = "python3.13"
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
-  memory_size      = 256
+  memory_size      = 1024
   timeout          = 25
   environment {
     variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, SITE_ORIGINS = join(",", local.allowed_origins), EMAIL_ENABLED = "true", EMAIL_FROM = "Brent PTA Volunteers <volunteers@brentholidaysale.com>", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_DELIVERY_MODE = "public" }
