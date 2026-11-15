@@ -16,7 +16,7 @@ Open http://localhost:8000.
 
 ## Current scope
 
-- Filter shifts by day, job type and staffing need.
+- Filter shifts by day and review staffing needs.
 - View individual arrival and departure hours.
 - Choose partial shifts where allowed.
 - Optionally display first name and last initial; names are private by default.

@@ -114,7 +114,7 @@ def number(value, label, minimum, maximum, integer=False):
 
 def edited_shift(old, payload):
     updated = copy.deepcopy(old)
-    for field, maximum in [("name", 100), ("role", 50), ("location", 180)]:
+    for field, maximum in [("name", 100), ("location", 180)]:
         if field in payload:
             updated[field] = clean_text(payload[field], field, maximum)
     if "date" in payload:
@@ -344,7 +344,6 @@ class AdminService:
         allowed = {
             "requestId",
             "name",
-            "role",
             "location",
             "date",
             "start",
@@ -362,9 +361,9 @@ class AdminService:
             request_id = str(uuid.UUID(payload.get("requestId", "")))
         except (ValueError, TypeError, AttributeError):
             raise Problem("Missing shift request identifier.") from None
-        required = {"name", "role", "location", "date", "start", "end", "capacity"}
+        required = {"name", "location", "date", "start", "end", "capacity"}
         if not required <= set(payload):
-            raise Problem("Enter a name, job type, location, date, hours and capacity.")
+            raise Problem("Enter a name, location, date, hours and capacity.")
         digest = hashlib.sha256(
             json.dumps(payload, sort_keys=True).encode()
         ).hexdigest()
@@ -386,7 +385,6 @@ class AdminService:
             "pk": "SHIFT#" + id,
             "id": id,
             "name": "",
-            "role": "",
             "location": "",
             "date": template["date"],
             "start": 9,
@@ -432,7 +430,6 @@ class AdminService:
         if set(payload) - {
             "revision",
             "name",
-            "role",
             "location",
             "date",
             "start",
@@ -543,8 +540,6 @@ class AdminService:
                 continue
             if query.get("shiftId") and query["shiftId"] != s["id"]:
                 continue
-            if query.get("role") and query["role"] != s["role"]:
-                continue
             writer.writerow(
                 [
                     csv_cell(v)
@@ -594,7 +589,7 @@ class AdminService:
             field = selector.get("field")
             value = selector.get("value")
             if (
-                field not in ("date", "role", "shiftId")
+                field not in ("date", "shiftId")
                 or not isinstance(value, str)
                 or not value
             ):

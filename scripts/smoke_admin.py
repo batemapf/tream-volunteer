@@ -121,11 +121,12 @@ try:
     token = auth["AuthenticationResult"]["AccessToken"]
     print("::add-mask::" + token)
     before = call("GET", "/admin/overview", bearer=token)
+    assert all("role" not in s for s in before["shifts"])
     first = next(s for s in before["shifts"] if s["id"] == "0")
     shift_payload = {
         "requestId": shift_request_id,
         "name": "Synthetic new shift",
-        "role": "Setup",
+
         "date": first["date"],
         "location": "Canal Park",
         "start": 9,

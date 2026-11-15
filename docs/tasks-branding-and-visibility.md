@@ -4,7 +4,7 @@
 
 Lot shifts offer optional multi-select tasks, initially Cashier, Chainsaw, Sales and Loading. These are preferences, not assignments, qualifications or separate capacity reservations. Leaving every option blank is valid. Only organizers and the signup's own confirmation see the participant's selections; the public roster continues to show only the approved display name and hours.
 
-Defaults are loaded from `backend/job-defaults.json`, keyed by job type (`role`). Each schedule row in `backend/schedule-draft.json` can override `subJobs`, including `[]` to offer no choices. Example:
+Each schedule row in `backend/schedule-draft.json` defines its own `subJobs`, including `[]` to offer no choices. Example:
 
 ```json
 {
@@ -18,7 +18,7 @@ Defaults are loaded from `backend/job-defaults.json`, keyed by job type (`role`)
 
 Up to 32 options are supported. IDs are unique lowercase identifiers (letters/numbers/underscores/hyphens, maximum 60 characters); labels are up to 80 characters, optional plain-text descriptions up to 240. `enabled` defaults to true. Stable IDs make labels editable without reinterpreting historical choices.
 
-The initial import fills a missing `subJobs` field on existing lot shifts, using a conditional update and incrementing the shift revision. It never overwrites an existing option configuration, including an intentional empty list. Future deployment/default changes therefore do not silently replace organizer edits. New shifts receive role defaults unless the row specifies its own choices.
+The initial import fills a missing `subJobs` field on existing lot shifts, using a conditional update and incrementing the shift revision. It never overwrites an existing option configuration, including an intentional empty list. Future deployment/default changes therefore do not silently replace organizer edits. New shifts start with no task choices; organizers can configure choices per shift.
 
 Organizers can also edit the option JSON in the shift editor. Signups validate against the currently enabled choices and store a private ID/label snapshot. Disabling/removing a choice prevents new selections without rewriting past preferences. The private volunteer list and CSV export include the snapshots.
 

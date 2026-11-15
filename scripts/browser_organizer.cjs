@@ -69,6 +69,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("heading", { name: "Add new shift", exact: true })
       .waitFor();
+    if (await page.locator("#shift-role").count())
+      throw Error("Obsolete job type field remains");
     if (await page.locator("#shift-open").isChecked())
       throw Error("New shifts should start with signups closed");
     if (!(await page.locator("#shift-date").inputValue()))

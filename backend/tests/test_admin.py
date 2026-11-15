@@ -29,7 +29,6 @@ class AdminTests(unittest.TestCase):
         return {
             "requestId": str(uuid.uuid4()),
             "name": "Extra setup",
-            "role": "Setup",
             "location": "Canal Park",
             "date": "2026-12-05",
             "start": 10,
@@ -37,6 +36,23 @@ class AdminTests(unittest.TestCase):
             "capacity": 5,
             **changes,
         }
+
+    def test_job_type_is_removed_from_schema_and_message_grouping(self):
+        payload = self.new_shift()
+        with self.assertRaises(Problem):
+            self.admin.create_shift({**payload, "role": "Setup"})
+        created = self.admin.create_shift(payload)
+        self.assertNotIn("role", self.store.get("SHIFT#" + created["id"]))
+        with self.assertRaises(Problem):
+            self.admin.update_shift("one", {"revision": 0, "role": "Setup"})
+        with self.assertRaises(Problem):
+            self.admin.message_preview(
+                {
+                    "subject": "Hello",
+                    "body": "Hi",
+                    "selector": {"mode": "group", "field": "role", "value": "Setup"},
+                }
+            )
 
     def test_create_shift_registers_once_and_preserves_existing_schedule(self):
         before = copy.deepcopy(self.store.get("SHIFT#one"))

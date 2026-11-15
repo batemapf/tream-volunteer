@@ -14,15 +14,10 @@ store = DynamoStore()
 rows = json.loads(
     (Path(__file__).resolve().parents[1] / "backend/schedule-draft.json").read_text()
 )
-defaults = json.loads(
-    (Path(__file__).resolve().parents[1] / "backend/job-defaults.json").read_text()
-)
 expiry = retention_expiry(epoch("2026-12-06", 19))
 for row in rows:
     row["id"] = str(row["id"])
-    sub_jobs = normalize_sub_jobs(
-        row.get("subJobs", defaults.get(row["role"], {}).get("subJobs", []))
-    )
+    sub_jobs = normalize_sub_jobs(row.get("subJobs", []))
     item = {
         **row,
         "pk": "SHIFT#" + row["id"],

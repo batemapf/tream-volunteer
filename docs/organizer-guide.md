@@ -33,7 +33,7 @@ No permanent organizer accounts are created by automation. Smoke tests create an
 - **Coverage & shifts:** exact attendance counts by time segment, nominal target and effective limit, open/closed signup status, flexible/full-shift rules, and schedule/policy editing. A signup arriving/departing inside a segment creates its own boundary.
 - **Volunteers:** private name and email search; day/job filters; contact selection; individual messaging entry point; authorized cancellation; filtered CSV download. CSV values are escaped and formula-prefixed cells neutralized.
 - **Overlaps:** likely same-person versus shared-email/family flags. Mark reviewed with a note or cancel a specific commitment after confirmation. Flags never block parent signup.
-- **Messages:** choose one/selected, a group (day/job type/shift), or all active volunteers. Contacts are deduplicated by email. Review the exact recipients and commitments, then save a private draft. Drafts can be loaded later and require a fresh recipient preview. Drafts expire after 30 days.
+- **Messages:** choose one/selected, a group (day/shift), or all active volunteers. Contacts are deduplicated by email. Review the exact recipients and commitments, then save a private draft. Drafts can be loaded later and require a fresh recipient preview. Drafts expire after 30 days.
 
 **Email sending remains disabled.** Saving a draft sends nothing and does not silently queue it for later automatic delivery. No automatic schedule-change or cancellation messages are sent yet. Annual-outreach preferences and opt-outs remain separate future work.
 
@@ -78,3 +78,5 @@ Passed 31 unit tests, deployed booking concurrency/privacy checks, real Cognito 
 The static organizer page returns HTTP 200; unauthenticated organizer API access returns HTTP 401. Email sending is still disabled. The workflow runs on Ubuntu 24.04 to match the pinned browser version.
 
 New volunteer signups now require a phone number. Phone numbers are shown only in the private organizer contact list/search and CSV export. Legacy signups may have a blank phone. Public names/rosters and confirmation emails do not expose phone numbers. Organizer message previews still save drafts; a Save draft action does not send a broadcast.
+
+Use **Add new shift** under Coverage & shifts to add a job window. New shifts default to signups closed; check **Accept new signups** when ready. Task choices are configured per shift.

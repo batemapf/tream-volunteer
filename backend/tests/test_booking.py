@@ -21,7 +21,7 @@ def shift(id="one", capacity=1):
         "id": id,
         "date": "2026-12-05",
         "name": "Lot sales",
-        "role": "Sales",
+
         "start": 9,
         "end": 13,
         "capacity": capacity,

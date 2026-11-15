@@ -315,7 +315,6 @@ def public_shift(shift, now):
         "id",
         "date",
         "name",
-        "role",
         "start",
         "end",
         "capacity",
