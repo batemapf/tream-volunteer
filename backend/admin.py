@@ -326,6 +326,7 @@ class AdminService:
                 {
                     **{k: b[k] for k in allowed},
                     "phone": b.get("phone", ""),
+                    "comment": b.get("comment", ""),
                     "subJobPreferences": b.get("subJobPreferences", []),
                 }
                 for b in bookings
@@ -440,6 +441,7 @@ class AdminService:
                 "Leave",
                 "Public name",
                 "Task preferences",
+                "Comment",
             ]
         )
         for b in bookings:
@@ -471,6 +473,7 @@ class AdminService:
                         self.hour(b["end"]),
                         b["publicName"],
                         "; ".join(p["label"] for p in b.get("subJobPreferences", [])),
+                        b.get("comment", ""),
                     ]
                 ]
             )

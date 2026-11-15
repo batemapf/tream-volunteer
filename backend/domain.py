@@ -139,13 +139,25 @@ def validate_selection(raw):
     main_phone = re.split(r"(?:ext\.?|x)", phone.strip(), flags=re.I)[0]
     if not 10 <= len(re.sub(r"\D", "", main_phone)) <= 15:
         raise Problem("Enter a phone number with 10–15 digits.")
+    comment = raw.get("comment", "")
+    if (
+        not isinstance(comment, str)
+        or len(comment) > 300
+        or any(ord(c) < 32 for c in comment)
+    ):
+        raise Problem("Enter a comment of up to 300 characters.")
     if not isinstance(raw.get("shareName", False), bool):
         raise Problem("Invalid public-name preference.")
     if not isinstance(raw.get("shiftId"), str) or not re.fullmatch(
         r"[a-zA-Z0-9_-]{1,60}", raw["shiftId"]
     ):
         raise Problem("Unknown shift.")
-    return {**raw, "name": name.strip(), "phone": phone.strip()}
+    return {
+        **raw,
+        "name": name.strip(),
+        "phone": phone.strip(),
+        "comment": comment.strip(),
+    }
 
 
 def fingerprint(email, selection):

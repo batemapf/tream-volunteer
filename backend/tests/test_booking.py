@@ -137,6 +137,21 @@ class BookingTests(unittest.TestCase):
     def book(self, raw=None):
         return self.service.book("parent@example.com", raw or selection())
 
+    def test_optional_comment_is_validated_stored_and_private(self):
+        for comment in (None, 42, "x" * 301, "bad\ncomment"):
+            with self.subTest(comment=comment), self.assertRaises(Problem):
+                self.book(selection(comment=comment))
+        result = self.book(selection(comment="  Will bring gloves.  "))
+        self.assertEqual(
+            self.store.get("BOOKING#" + result["bookingId"])["comment"],
+            "Will bring gloves.",
+        )
+        self.assertNotIn(
+            "Will bring gloves.",
+            json.dumps(public_shift(self.store.get("SHIFT#one"), NOW)),
+        )
+        self.assertNotIn("comment", result)
+
     def test_phone_is_required_validated_and_private(self):
         for phone in (None, "", "123", "call me", "2025550123\n123"):
             with self.subTest(phone=phone), self.assertRaises(Problem):

@@ -86,6 +86,7 @@ class BookingService:
                 "contactHash": contact_hash(email),
                 "name": selection["name"],
                 "phone": selection["phone"],
+                "comment": selection["comment"],
                 "publicName": result["publicName"],
                 "subJobPreferences": preferences,
                 "start": start,
