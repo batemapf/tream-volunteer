@@ -58,7 +58,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
             "Day choices need horizontal scrolling at " + width + "px",
           );
 
-        await page.getByRole("button", { name: "Sat 05", exact: true }).click();
+        await page.getByRole("button", { name: "Sat 12/05", exact: true }).click();
         const join = page.locator('.join[data-open="8"]');
         const box = await join.boundingBox();
         if (box.x < 0 || box.x + box.width > width || box.height < 44)
