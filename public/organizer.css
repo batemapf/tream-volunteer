@@ -67,7 +67,7 @@
 }
 .a-metrics {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 24px;
 }
@@ -313,7 +313,7 @@ button.danger {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .a-metrics {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .a-message {
     grid-template-columns: 1fr;
@@ -368,4 +368,89 @@ button.danger {
   .a-header a {
     font-size: 10px;
   }
+}
+
+/* Keep intrinsic table/control widths inside their own containers on mobile,
+   including Safari's flex/grid sizing and text autosizing behavior. */
+.organizer-page {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+#admin {
+  width: 100%;
+  min-width: 0;
+}
+#pane,
+.a-metric,
+.a-title > div,
+.a-card,
+.a-card-header > div,
+.a-message > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.a-table-wrap,
+.a-timeline {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.a-controls > *,
+.a-modal-form input,
+.a-modal-form select,
+.a-modal-form textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+.a-modal-form .times {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 600px) {
+  .organizer-page header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .organizer-page .brent-brand {
+    min-width: 0;
+    max-width: none;
+  }
+  .organizer-page .a-header {
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .a-title,
+  .a-card-header {
+    flex-wrap: wrap;
+  }
+  .a-title > div {
+    flex: 1 1 170px;
+  }
+  .a-card-header > div {
+    flex: 1 1 180px;
+  }
+  .a-title > button,
+  .a-card-header > button {
+    flex: none;
+  }
+  .a-metric {
+    padding: 14px;
+  }
+}
+/* Give the privately scrollable roster usable columns instead of squeezing text. */
+.a-table {
+  min-width: 1200px;
+  table-layout: fixed;
+}
+.a-table th:first-child {
+  width: 44px;
+}
+.a-table th:nth-child(2) {
+  width: 220px;
+}
+.a-table th:nth-child(3) {
+  width: 200px;
+}
+.a-table th:last-child {
+  width: 150px;
 }
