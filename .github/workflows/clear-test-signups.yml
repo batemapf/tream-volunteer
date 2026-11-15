@@ -22,7 +22,7 @@ jobs:
     env:
       AWS_REGION: us-east-2
       TABLE_NAME: tream-dev-data
-      RESET_STATE_FILE: ${{ runner.temp }}/tream-reset-concurrency.json
+      RESET_STATE_FILE: /tmp/tream-reset-concurrency.json
       RESET_CONFIRMATION: ${{ inputs.confirmation }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
