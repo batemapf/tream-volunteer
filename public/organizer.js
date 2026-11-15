@@ -95,7 +95,7 @@
   }
   async function api(path, { method = "GET", body, raw = false } = {}) {
     const credential = token;
-    const response = await fetch(config.apiBase + path, {
+    const response = await (window.treamFetch || fetch)(config.apiBase + path, {
       method,
       headers: {
         Authorization: "Bearer " + credential,

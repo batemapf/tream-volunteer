@@ -17,7 +17,7 @@ const $ = (q) => document.querySelector(q),
   apiBase = window.TREAM_CONFIG?.apiBase;
 let booking, shifts;
 async function api(path, body) {
-  const response = await fetch(apiBase + path, {
+  const response = await (window.treamFetch || fetch)(apiBase + path, {
     method: body ? "POST" : "GET",
     headers: {
       Authorization: "Bearer " + token,
@@ -25,7 +25,7 @@ async function api(path, body) {
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) throw Error(data.message || "Please try again.");
   return data;
 }

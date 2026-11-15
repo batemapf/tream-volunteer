@@ -106,11 +106,11 @@ try {
   localStorage.removeItem("tream-board-demo");
 } catch {}
 async function api(path, options = {}) {
-  const response = await fetch(apiBase + path, {
+  const response = await (window.treamFetch || fetch)(apiBase + path, {
     ...options,
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "Please try again.");
   return data;
 }

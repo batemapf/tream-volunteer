@@ -2,6 +2,11 @@ name: Deploy AWS development
 
 on:
   workflow_dispatch:
+    inputs:
+      launch_safe:
+        description: Skip schedule migrations and production-mutating smoke tests; restrict Terraform updates
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -20,6 +25,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip deploy]')
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     # Reuse the configured trust environment; infrastructure itself is named tream-dev.
@@ -29,6 +35,7 @@ jobs:
       id-token: write
     env:
       AWS_REGION: us-east-2
+      LAUNCH_SAFE: ${{ inputs.launch_safe && 'true' || 'false' }}
       PLAYWRIGHT_MODULE: /tmp/tream-browser/node_modules/playwright
       PLAYWRIGHT_BROWSERS_PATH: /tmp/tream-playwright
     steps:
@@ -39,6 +46,7 @@ jobs:
           node --check public/app.js
           node --check public/organizer.js
           node --check public/manage.js
+          node --test operations/test_request.cjs
       - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.10.5
@@ -57,6 +65,11 @@ jobs:
           terraform fmt -check
           terraform validate
           terraform plan -input=false -lock-timeout=120s -out=deployment.tfplan
+      - name: Guard targeted launch plan
+        if: inputs.launch_safe
+        run: |
+          terraform -chdir=infra/app show -json deployment.tfplan > /tmp/tream-launch-plan.json
+          python3 operations/check_launch_plan.py /tmp/tream-launch-plan.json
       - name: Apply development infrastructure
         working-directory: infra/app
         run: terraform apply -input=false -lock-timeout=120s deployment.tfplan
@@ -79,16 +92,24 @@ jobs:
           export ORGANIZER_CLIENT_ID="$(terraform -chdir=infra/app output -raw organizer_client_id)"
           web_bucket="$(terraform -chdir=infra/app output -raw web_bucket)"
           distribution="$(terraform -chdir=infra/app output -raw distribution_id)"
-          /tmp/tream-deploy-venv/bin/python scripts/seed_schedule.py
-          /tmp/tream-deploy-venv/bin/python scripts/remove_job_types.py
-          /tmp/tream-deploy-venv/bin/python scripts/backfill_contacts.py
-          /tmp/tream-deploy-venv/bin/python scripts/update_unloading.py
+          if [ "$LAUNCH_SAFE" != "true" ]; then
+            /tmp/tream-deploy-venv/bin/python scripts/seed_schedule.py
+            /tmp/tream-deploy-venv/bin/python scripts/remove_job_types.py
+            /tmp/tream-deploy-venv/bin/python scripts/backfill_contacts.py
+            /tmp/tream-deploy-venv/bin/python scripts/update_unloading.py
+          fi
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           Path('public/config.js').write_text('window.TREAM_CONFIG = '+json.dumps({'apiBase':os.environ['API_URL'],'organizerPoolId':os.environ['ORGANIZER_POOL_ID'],'organizerClientId':os.environ['ORGANIZER_CLIENT_ID'],'region':'us-east-2'})+';\n')
           PY
-          aws s3 sync public/ "s3://${web_bucket}/" --delete --cache-control 'max-age=60'
+          if [ "$LAUNCH_SAFE" = "true" ]; then
+            for file in request.js app.js manage.js organizer.js index.html manage.html organizer.html; do
+              aws s3 cp "public/$file" "s3://${web_bucket}/$file" --cache-control 'max-age=60'
+            done
+          else
+            aws s3 sync public/ "s3://${web_bucket}/" --delete --cache-control 'max-age=60'
+          fi
           aws cloudfront create-invalidation --distribution-id "$distribution" --paths '/*' --query Invalidation.Id --output text
           echo "SITE_URL=${SITE_URL}" >> "$GITHUB_ENV"
           echo "API_URL=${API_URL}" >> "$GITHUB_ENV"
@@ -102,8 +123,10 @@ jobs:
             echo '- Shared development database. Transactional team-test emails are enabled; organizer broadcast sending stays disabled.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Exercise deployed API and clean up test data
+        if: ${{ !inputs.launch_safe }}
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_aws.py
       - name: Exercise organizer authorization and operations
+        if: ${{ !inputs.launch_safe }}
         run: /tmp/tream-deploy-venv/bin/python scripts/smoke_admin.py
       - name: Exercise public schedule policy rendering
         run: node scripts/browser_public_rules.cjs

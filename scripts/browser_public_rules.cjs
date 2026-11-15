@@ -30,10 +30,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
       body: 'window.TREAM_CONFIG={apiBase:"https://policy-fixture.execute-api.us-east-2.amazonaws.com"}',
     }),
   );
+  let transientResponses = 0;
   await context.route(
     "https://policy-fixture.execute-api.us-east-2.amazonaws.com/**",
     (route) =>
       route.fulfill({
+        status: transientResponses++ < 2 ? 429 : 200,
         headers: {
           "access-control-allow-origin": "*",
           "access-control-allow-headers": "content-type",

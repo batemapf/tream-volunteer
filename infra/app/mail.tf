@@ -29,7 +29,7 @@ resource "aws_lambda_function" "mail" {
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
   memory_size      = 256
-  timeout          = 25
+  timeout          = 50
   environment {
     variables = { TABLE_NAME = aws_dynamodb_table.data.name, SITE_ORIGIN = local.origin, EMAIL_CONFIGURATION_SET = aws_sesv2_configuration_set.mail.configuration_set_name, EMAIL_ENABLED = "true", EMAIL_FROM = "Brent PTA Volunteers <volunteers@brentholidaysale.com>", EMAIL_REPLY_TO = "batemapf@gmail.com", EMAIL_DELIVERY_MODE = "public" }
   }

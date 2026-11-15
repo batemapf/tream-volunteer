@@ -123,8 +123,9 @@ def handler(event, context):
 
     store, ses = DynamoStore(), boto3.client("sesv2")
     now = int(time.time())
-    # This small AWS account cannot reserve Lambda concurrency. A table lease
-    # serializes deliveries across invocations and preserves the 1/sec SES limit.
+    deadline = time.monotonic() + 40
+    # Lease outlasts the 50-second Lambda timeout, preventing overlapping sends.
+    # Five sends/second leaves headroom below the verified SES limit of 14/second.
     try:
         store.client.update_item(
             TableName=store.table,
@@ -132,7 +133,7 @@ def handler(event, context):
             UpdateExpression="SET leaseUntil = :lease, expiresAt = :expiry",
             ConditionExpression="attribute_not_exists(leaseUntil) OR leaseUntil <= :now",
             ExpressionAttributeValues=store.encode(
-                {":lease": now + 30, ":expiry": now + 120, ":now": now}
+                {":lease": now + 55, ":expiry": now + 120, ":now": now}
             ),
         )
     except ClientError as e:
@@ -144,10 +145,15 @@ def handler(event, context):
         IndexName="recordType-createdAt",
         KeyConditionExpression="recordType = :type",
         ExpressionAttributeValues=store.encode({":type": "mailPending"}),
-        Limit=10,
+        Limit=120,
     )
     sent = 0
     for raw in pending.get("Items", []):
+        if time.monotonic() >= deadline or (
+            context is not None and context.get_remaining_time_in_millis() < 6000
+        ):
+            break  # Leave unclaimed rows pending for the next scheduled run.
+        now = int(time.time())
         row = store.decode(raw)
         if row.get("leaseUntil", 0) > now:
             continue
@@ -190,7 +196,7 @@ def handler(event, context):
                 )
                 message_id, status = result["MessageId"], "sent"
                 sent += 1
-                time.sleep(1.1)  # Account sandbox rate is one message per second.
+                time.sleep(0.2)  # Pace SES requests to at most five per second.
         except Exception as e:
             print({"notificationId": row["id"], "errorType": type(e).__name__})
             if row.get("attempts", 0) < 4:
