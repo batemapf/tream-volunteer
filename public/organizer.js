@@ -133,6 +133,7 @@
         return;
       }
       button.disabled = true;
+      document.activeElement?.blur();
       try {
         let result;
         if (challenge) {

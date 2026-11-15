@@ -76,17 +76,19 @@ const fixture = {
         body: 'window.TREAM_CONFIG={apiBase:"https://layout-fixture.execute-api.us-east-2.amazonaws.com",organizerClientId:"fixture"}',
       }),
     );
-    await context.route("https://layout-fixture.execute-api.us-east-2.amazonaws.com/**", (r) =>
-      r.fulfill({
-        headers: {
-          "access-control-allow-origin": "*",
-          "access-control-allow-headers": "authorization,content-type",
-          "access-control-allow-methods": "GET,POST,OPTIONS",
-        },
-        json: r.request().url().endsWith("/admin/overview")
-          ? fixture
-          : { drafts: [] },
-      }),
+    await context.route(
+      "https://layout-fixture.execute-api.us-east-2.amazonaws.com/**",
+      (r) =>
+        r.fulfill({
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-headers": "authorization,content-type",
+            "access-control-allow-methods": "GET,POST,OPTIONS",
+          },
+          json: r.request().url().endsWith("/admin/overview")
+            ? fixture
+            : { drafts: [] },
+        }),
     );
     const page = await context.newPage(),
       errors = [];
@@ -147,9 +149,100 @@ const fixture = {
         path: `${process.env.LAYOUT_SCREENSHOT}-${name}.png`,
         fullPage: true,
       });
+    // Exercise the missing path: native-sized mobile inputs, focus, then sign-in.
+    const mobile = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 3,
+    });
+    await mobile.route("**/config.js", (r) =>
+      r.fulfill({
+        contentType: "application/javascript",
+        body: 'window.TREAM_CONFIG={apiBase:"https://layout-fixture.execute-api.us-east-2.amazonaws.com",organizerClientId:"fixture"}',
+      }),
+    );
+    await mobile.route(
+      "https://layout-fixture.execute-api.us-east-2.amazonaws.com/**",
+      (r) =>
+        r.fulfill({
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-headers": "authorization,content-type",
+            "access-control-allow-methods": "GET,POST,OPTIONS",
+          },
+          json: r.request().url().endsWith("/admin/overview")
+            ? fixture
+            : { drafts: [] },
+        }),
+    );
+    await mobile.route("https://cognito-idp.us-east-2.amazonaws.com/**", (r) =>
+      r.fulfill({
+        headers: {
+          "access-control-allow-origin": "*",
+          "access-control-allow-headers": "content-type,x-amz-target",
+          "access-control-allow-methods": "POST,OPTIONS",
+        },
+        json: {
+          AuthenticationResult: { AccessToken: "synthetic-mobile-token" },
+        },
+      }),
+    );
+    const phone = await mobile.newPage();
+    await phone.goto(
+      (process.env.SITE_URL || "http://127.0.0.1:8010") + "/organizer.html",
+    );
+    async function nativeSized(selector) {
+      const small = await phone
+        .locator(selector)
+        .evaluateAll((els) =>
+          els
+            .filter(
+              (e) =>
+                e.type !== "checkbox" &&
+                parseFloat(getComputedStyle(e).fontSize) < 16,
+            )
+            .map((e) => e.id),
+        );
+      if (small.length)
+        throw Error(`${name} iPhone auto-zoom risk: ${small.join(", ")}`);
+    }
+    await nativeSized(".a-login input");
+    await phone.locator("#username").fill("synthetic");
+    await phone.locator("#password").fill("SyntheticPassword123!");
+    await phone.getByRole("button", { name: "Sign in", exact: true }).click();
+    await phone
+      .getByRole("heading", { name: "Organizer desk", exact: true })
+      .waitFor();
+    await nativeSized("#admin input,#admin select,#admin textarea");
+    await phone.locator("#filter-day").focus();
+    await phone.locator("[data-view=volunteers]").click();
+    await phone.locator("#search").fill("Test");
+    await nativeSized("#admin input,#admin select,#admin textarea");
+    await phone.locator("[data-view=messages]").click();
+    await nativeSized("#admin input,#admin select,#admin textarea");
+    await phone.locator("[data-view=coverage]").click();
+    await phone.locator("#add-shift").click();
+    await nativeSized("#dialog input,#dialog select,#dialog textarea");
+    await phone.locator("#shift-name").focus();
+    const viewport = await phone.evaluate(() => ({
+      scale: visualViewport.scale,
+      offset: visualViewport.offsetLeft,
+      width: innerWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    if (
+      viewport.scale > 1.01 ||
+      viewport.offset > 1 ||
+      viewport.scroll > viewport.width + 1
+    )
+      throw Error(
+        `${name} mobile focus changed viewport: ${JSON.stringify(viewport)}`,
+      );
+    await mobile.close();
     await browser.close();
     console.log(
-      `PASS: ${name} admin page, header, controls, metrics, four tabs and dialog fit 320–1440px; tables scroll internally.`,
+      `PASS: ${name} admin page, header, controls, metrics, four tabs and dialog fit 320–1440px; tables scroll internally; mobile sign-in and controls meet the 16px no-auto-zoom threshold.`,
     );
   }
 })().catch((e) => {

@@ -454,3 +454,12 @@ button.danger {
 .a-table th:last-child {
   width: 150px;
 }
+/* iOS zooms focused form controls below 16px and can retain that zoom
+   after sign-in removes the form. Keep all admin controls at native size. */
+@media (max-width: 800px) {
+  .organizer-page input,
+  .organizer-page select,
+  .organizer-page textarea {
+    font-size: 16px;
+  }
+}
