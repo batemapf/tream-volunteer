@@ -75,6 +75,25 @@ class DynamoStore:
     def commit_records(self, records):
         self.transact([self.put_op(row) for row in records])
 
+    def commit_new_shift(self, shift, audit):
+        self.transact(
+            [
+                self.put_op(shift, "attribute_not_exists(pk)"),
+                self.put_op(audit, "attribute_not_exists(pk)"),
+                {
+                    "Update": {
+                        "TableName": self.table,
+                        "Key": self.encode({"pk": "EVENT#2026"}),
+                        "UpdateExpression": "SET shiftIds = list_append(shiftIds, :ids)",
+                        "ConditionExpression": "attribute_exists(pk) AND NOT contains(shiftIds, :id)",
+                        "ExpressionAttributeValues": self.encode(
+                            {":ids": [shift["id"]], ":id": shift["id"]}
+                        ),
+                    }
+                },
+            ]
+        )
+
     def commit_admin_shift(self, old, new, audit):
         self.transact(
             [

@@ -32,6 +32,8 @@ selections = []
 bookings = []
 draft_id = None
 browser_draft_id = None
+shift_request_id = str(uuid.uuid4())
+new_shift_id = "custom-" + shift_request_id
 review_key = None
 
 
@@ -120,6 +122,26 @@ try:
     print("::add-mask::" + token)
     before = call("GET", "/admin/overview", bearer=token)
     first = next(s for s in before["shifts"] if s["id"] == "0")
+    shift_payload = {
+        "requestId": shift_request_id,
+        "name": "Synthetic new shift",
+        "role": "Setup",
+        "date": first["date"],
+        "location": "Canal Park",
+        "start": 9,
+        "end": 10,
+        "capacity": 3,
+        "open": False,
+    }
+    added = call("POST", "/admin/shifts", shift_payload, token, expected=201)
+    assert added["id"] == new_shift_id
+    assert call("POST", "/admin/shifts", shift_payload, token, expected=201) == added
+    registry = store.get("EVENT#2026")
+    assert registry["shiftIds"].count(new_shift_id) == 1
+    assert any(
+        s["id"] == new_shift_id and not s["open"]
+        for s in call("GET", "/schedule")["shifts"]
+    )
     # No-op edit still exercises validated JWT, revision check, DynamoDB transaction and audit.
     call(
         "POST",
@@ -214,6 +236,30 @@ try:
         "PASS: no-token rejection, first-password challenge, non-organizer rejection, organizer access, shift revisions, conflict review, private export/formula protection, family-recipient preview, disabled draft and admin cancellation."
     )
 finally:
+    registry = store.get("EVENT#2026")
+    if new_shift_id in registry.get("shiftIds", []):
+        index = registry["shiftIds"].index(new_shift_id)
+        store.transact(
+            [
+                {
+                    "Update": {
+                        "TableName": store.table,
+                        "Key": store.encode({"pk": "EVENT#2026"}),
+                        "UpdateExpression": f"REMOVE shiftIds[{index}]",
+                        "ConditionExpression": f"shiftIds[{index}] = :id",
+                        "ExpressionAttributeValues": store.encode(
+                            {":id": new_shift_id}
+                        ),
+                    }
+                },
+                {
+                    "Delete": {
+                        "TableName": store.table,
+                        "Key": store.encode({"pk": "SHIFT#" + new_shift_id}),
+                    }
+                },
+            ]
+        )
     for selection in selections:
         idem = store.get("IDEMP#" + selection["idempotencyKey"])
         if idem:

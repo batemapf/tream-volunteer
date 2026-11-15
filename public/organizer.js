@@ -257,6 +257,7 @@
   function renderCoverage() {
     $("#pane").innerHTML =
       commonControls() +
+      `<div class="a-controls"><button class="primary" id="add-shift">Add new shift</button></div>` +
       shifts()
         .map(
           (s) =>
@@ -264,6 +265,7 @@
         )
         .join("");
     wireFilters();
+    $("#add-shift").onclick = () => editShift();
     document
       .querySelectorAll("[data-edit]")
       .forEach((b) => (b.onclick = () => editShift(b.dataset.edit)));
@@ -276,10 +278,26 @@
     dialog.querySelector(".close").onclick = () => dialog.close();
   }
   function editShift(id) {
-    const s = job(id),
+    const creating = !id,
+      requestId = creating ? crypto.randomUUID() : null,
+      s = creating
+        ? {
+            name: "",
+            role: "",
+            date: day || data.shifts[0]?.date || "2026-12-02",
+            start: 9,
+            end: 13,
+            capacity: 10,
+            overflowPercent: 0,
+            location: "Canal Park",
+            flex: true,
+            open: false,
+            subJobs: [],
+          }
+        : job(id),
       a = s.attendance || {};
     openModal(
-      `<h2>Edit shift</h2><p class="sub">Existing commitments stay protected. Changes are recorded in the audit history.</p><form id="shift-form" class="a-modal-form"><label for="shift-name">Job name</label><input id="shift-name" required maxlength="100" value="${esc(s.name)}"><div class="times"><div><label for="shift-role">Job type</label><input id="shift-role" required maxlength="50" value="${esc(s.role)}"></div><div><label for="shift-date">Day</label><input id="shift-date" type="date" required value="${esc(s.date)}"></div></div><label for="shift-location">Location</label><input id="shift-location" required maxlength="180" value="${esc(s.location || "Canal Park")}"><div class="times"><div><label for="shift-start">Start</label><input id="shift-start" type="time" step="300" required value="${timeValue(s.start)}"></div><div><label for="shift-end">End</label><input id="shift-end" type="time" step="300" required value="${timeValue(s.end)}"></div></div><div class="times"><div><label for="shift-capacity">Staffing target / capacity</label><input id="shift-capacity" type="number" min="1" max="500" required value="${s.capacity}"></div><div><label for="shift-overflow">Allowed overflow (%)</label><input id="shift-overflow" type="number" min="0" max="100" step="any" required value="${s.overflowPercent || 0}"></div></div><div class="a-limit" id="limit-preview"></div><label class="a-checkbox"><input id="shift-flex" type="checkbox" ${s.flex ? "checked" : ""}> Allow partial attendance</label><label class="a-checkbox"><input id="shift-open" type="checkbox" ${s.open ? "checked" : ""}> Accept new signups</label><div class="times"><div><label for="shift-minimum">Minimum minutes</label><input id="shift-minimum" type="number" min="5" max="1440" step="5" value="${a.minMinutes || 30}" required></div><div><label for="shift-increment">Time-choice increment</label><select id="shift-increment">${[5, 10, 15, 20, 30, 60, 120].map((n) => `<option value="${n}" ${n === (a.incrementMinutes || 30) ? "selected" : ""}>${n} minutes</option>`).join("")}</select></div></div><label for="shift-subjobs">Optional task choices (JSON)</label><textarea id="shift-subjobs" rows="5">${esc(JSON.stringify(s.subJobs || [], null, 2))}</textarea><p class="sub">Use id, label, optional description and enabled. These are preferences, not staffing quotas. Use [] for no choices.</p><details><summary>Advanced attendance rules</summary><label for="shift-maximum">Maximum commitment (minutes)</label><input id="shift-maximum" type="number" min="5" max="1440" value="${a.maxMinutes || 1440}"><label for="allowed-starts">Allowed arrival hours (JSON array, or null for any)</label><textarea id="allowed-starts" rows="2">${esc(JSON.stringify(a.allowedStarts ?? null))}</textarea><label for="allowed-ends">Allowed departure hours (JSON array, or null for any)</label><textarea id="allowed-ends" rows="2">${esc(JSON.stringify(a.allowedEnds ?? null))}</textarea><p class="sub">Example: [9, 9.5, 10]. Times must fit the shift and increment.</p></details><p id="shift-error" class="a-error" role="alert"></p><button class="primary full">Save shift</button></form>`,
+      `<h2>${creating ? "Add new shift" : "Edit shift"}</h2>${creating ? "" : '<p class="sub">Existing commitments stay protected. Changes are recorded in the audit history.</p>'}<form id="shift-form" class="a-modal-form"><label for="shift-name">Job name</label><input id="shift-name" required maxlength="100" value="${esc(s.name)}"><div class="times"><div><label for="shift-role">Job type</label><input id="shift-role" required maxlength="50" value="${esc(s.role)}"></div><div><label for="shift-date">Day</label><input id="shift-date" type="date" required value="${esc(s.date)}"></div></div><label for="shift-location">Location</label><input id="shift-location" required maxlength="180" value="${esc(s.location || "Canal Park")}"><div class="times"><div><label for="shift-start">Start</label><input id="shift-start" type="time" step="300" required value="${timeValue(s.start)}"></div><div><label for="shift-end">End</label><input id="shift-end" type="time" step="300" required value="${timeValue(s.end)}"></div></div><div class="times"><div><label for="shift-capacity">Staffing target / capacity</label><input id="shift-capacity" type="number" min="1" max="500" required value="${s.capacity}"></div><div><label for="shift-overflow">Allowed overflow (%)</label><input id="shift-overflow" type="number" min="0" max="100" step="any" required value="${s.overflowPercent || 0}"></div></div><div class="a-limit" id="limit-preview"></div><label class="a-checkbox"><input id="shift-flex" type="checkbox" ${s.flex ? "checked" : ""}> Allow partial attendance</label><label class="a-checkbox"><input id="shift-open" type="checkbox" ${s.open ? "checked" : ""}> Accept new signups</label><div class="times"><div><label for="shift-minimum">Minimum minutes</label><input id="shift-minimum" type="number" min="5" max="1440" step="5" value="${a.minMinutes || 30}" required></div><div><label for="shift-increment">Time-choice increment</label><select id="shift-increment">${[5, 10, 15, 20, 30, 60, 120].map((n) => `<option value="${n}" ${n === (a.incrementMinutes || 30) ? "selected" : ""}>${n} minutes</option>`).join("")}</select></div></div><label for="shift-subjobs">Optional task choices (JSON)</label><textarea id="shift-subjobs" rows="5">${esc(JSON.stringify(s.subJobs || [], null, 2))}</textarea><p class="sub">Use id, label, optional description and enabled. These are preferences, not staffing quotas. Use [] for no choices.</p><details><summary>Advanced attendance rules</summary><label for="shift-maximum">Maximum commitment (minutes)</label><input id="shift-maximum" type="number" min="5" max="1440" value="${a.maxMinutes || 1440}"><label for="allowed-starts">Allowed arrival hours (JSON array, or null for any)</label><textarea id="allowed-starts" rows="2">${esc(JSON.stringify(a.allowedStarts ?? null))}</textarea><label for="allowed-ends">Allowed departure hours (JSON array, or null for any)</label><textarea id="allowed-ends" rows="2">${esc(JSON.stringify(a.allowedEnds ?? null))}</textarea><p class="sub">Example: [9, 9.5, 10]. Times must fit the shift and increment.</p></details><p id="shift-error" class="a-error" role="alert"></p><button class="primary full">Save shift</button></form>`,
     );
     const limit = () => {
       $("#limit-preview").textContent =
@@ -300,7 +318,7 @@
       lockModal(true);
       try {
         const body = {
-          revision: s.revision,
+          ...(creating ? { requestId } : { revision: s.revision }),
           name: $("#shift-name").value,
           role: $("#shift-role").value,
           location: $("#shift-location").value,
@@ -320,7 +338,10 @@
             allowedEnds: JSON.parse($("#allowed-ends").value),
           },
         };
-        await api("/admin/shifts/" + id, { method: "POST", body });
+        await api(creating ? "/admin/shifts" : "/admin/shifts/" + id, {
+          method: "POST",
+          body,
+        });
         await refresh();
         dialog.close();
         toast("Shift saved.");

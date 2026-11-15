@@ -101,6 +101,8 @@ def handler(event, context):
                 return result
             if method == "POST":
                 body = payload(event, headers)
+                if path == "/admin/shifts":
+                    return response(201, admin.create_shift(body))
                 if len(segments) == 3 and segments[1] == "shifts":
                     return response(200, admin.update_shift(segments[2], body))
                 if (

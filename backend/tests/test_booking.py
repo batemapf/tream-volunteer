@@ -80,6 +80,15 @@ class MemoryStore:
             for row in rows:
                 self.rows[row["pk"]] = copy.deepcopy(row)
 
+    def commit_new_shift(self, shift, audit):
+        with self.lock:
+            registry = self.rows["EVENT#2026"]
+            if shift["pk"] in self.rows or shift["id"] in registry["shiftIds"]:
+                raise Contention()
+            self.rows[shift["pk"]] = copy.deepcopy(shift)
+            self.rows[audit["pk"]] = copy.deepcopy(audit)
+            registry["shiftIds"].append(shift["id"])
+
     def commit_admin_shift(self, old, new, audit):
         with self.lock:
             if self.rows[old["pk"]]["revision"] != old["revision"]:

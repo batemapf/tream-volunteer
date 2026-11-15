@@ -22,11 +22,16 @@ from service import BookingService, Contention, public_shift
 
 def shift_rows(store):
     registry = store.get("EVENT#2026") or {}
-    return [
-        s
-        for s in store.get_many(["SHIFT#" + id for id in registry.get("shiftIds", [])])
-        if s
-    ]
+    return sorted(
+        [
+            s
+            for s in store.get_many(
+                ["SHIFT#" + id for id in registry.get("shiftIds", [])]
+            )
+            if s
+        ],
+        key=lambda s: (s["date"], s["start"], s["end"], s["name"], s["id"]),
+    )
 
 
 def coverage(shift):
@@ -334,6 +339,86 @@ class AdminService:
             "conflicts": conflicts,
             "emailEnabled": False,
         }
+
+    def create_shift(self, payload):
+        allowed = {
+            "requestId",
+            "name",
+            "role",
+            "location",
+            "date",
+            "start",
+            "end",
+            "capacity",
+            "overflowPercent",
+            "flex",
+            "open",
+            "attendance",
+            "subJobs",
+        }
+        if set(payload) - allowed:
+            raise Problem("Unknown shift fields.")
+        try:
+            request_id = str(uuid.UUID(payload.get("requestId", "")))
+        except (ValueError, TypeError, AttributeError):
+            raise Problem("Missing shift request identifier.") from None
+        required = {"name", "role", "location", "date", "start", "end", "capacity"}
+        if not required <= set(payload):
+            raise Problem("Enter a name, job type, location, date, hours and capacity.")
+        digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True).encode()
+        ).hexdigest()
+        id = "custom-" + request_id
+        existing = self.store.get("SHIFT#" + id)
+        if existing:
+            if existing.get("createFingerprint") != digest:
+                raise Problem(
+                    "This request was already used. Close the form and try again.",
+                    "stale",
+                    409,
+                )
+            return {"status": "created", "id": id}
+        templates = shift_rows(self.store)
+        if not templates:
+            raise Problem("Load the event schedule before adding shifts.")
+        template = templates[0]
+        base = {
+            "pk": "SHIFT#" + id,
+            "id": id,
+            "name": "",
+            "role": "",
+            "location": "",
+            "date": template["date"],
+            "start": 9,
+            "end": 13,
+            "capacity": 1,
+            "overflowPercent": 0,
+            "flex": True,
+            "open": False,
+            "subJobs": [],
+            "attendance": {"incrementMinutes": 30, "minMinutes": 30},
+            "roster": [],
+            "revision": 0,
+            "publicUntil": template["publicUntil"],
+            "expiresAt": template["expiresAt"],
+        }
+        new = edited_shift(base, {k: v for k, v in payload.items() if k != "requestId"})
+        new["createFingerprint"] = digest
+        audit = self.audit(
+            "shift_created",
+            id,
+            {k: v for k, v in payload.items() if k != "requestId"},
+            new["expiresAt"],
+        )
+        try:
+            self.store.commit_new_shift(new, audit)
+        except Contention:
+            existing = self.store.get("SHIFT#" + id)
+            if not existing or existing.get("createFingerprint") != digest:
+                raise Problem(
+                    "The schedule changed. Please try saving again.", "stale", 409
+                ) from None
+        return {"status": "created", "id": id}
 
     def update_shift(self, id, payload):
         old = self.store.get("SHIFT#" + id)

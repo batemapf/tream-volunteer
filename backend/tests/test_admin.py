@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import unittest
+import uuid
 import sys
 from pathlib import Path
 
@@ -23,6 +24,56 @@ class AdminTests(unittest.TestCase):
 
     def add(self, id="one", email="family@example.com", **changes):
         return self.booking.book(email, selection(id, **changes))
+
+    def new_shift(self, **changes):
+        return {
+            "requestId": str(uuid.uuid4()),
+            "name": "Extra setup",
+            "role": "Setup",
+            "location": "Canal Park",
+            "date": "2026-12-05",
+            "start": 10,
+            "end": 12,
+            "capacity": 5,
+            **changes,
+        }
+
+    def test_create_shift_registers_once_and_preserves_existing_schedule(self):
+        before = copy.deepcopy(self.store.get("SHIFT#one"))
+        payload = self.new_shift()
+        created = self.admin.create_shift(payload)
+        self.assertEqual(self.admin.create_shift(payload), created)
+        self.assertEqual(
+            self.store.get("EVENT#2026")["shiftIds"].count(created["id"]), 1
+        )
+        self.assertEqual(self.store.get("SHIFT#one"), before)
+        new = self.store.get("SHIFT#" + created["id"])
+        self.assertEqual(new["roster"], [])
+        self.assertFalse(new["open"])
+        self.assertEqual(new["expiresAt"], before["expiresAt"])
+        self.assertIn(created["id"], [s["id"] for s in self.admin.overview()["shifts"]])
+        with self.assertRaises(Problem):
+            self.admin.create_shift({**payload, "capacity": 6})
+
+    def test_create_shift_validates_input_and_allows_independent_additions(self):
+        for changes in (
+            {"capacity": 0},
+            {"end": 9},
+            {"date": "2027-01-01"},
+            {"requestId": "invalid"},
+            {"name": ""},
+            {"roster": []},
+        ):
+            with self.subTest(changes=changes), self.assertRaises(Problem):
+                self.admin.create_shift(self.new_shift(**changes))
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(
+                pool.map(self.admin.create_shift, [self.new_shift() for _ in range(4)])
+            )
+        self.assertEqual(len(set(self.store.get("EVENT#2026")["shiftIds"])), 6)
+        self.assertTrue(all(self.store.get("SHIFT#" + r["id"]) for r in results))
 
     def test_auth_requires_access_token_and_exact_group(self):
         for groups in (["organizers"], "organizers", "[organizers]", '["organizers"]'):

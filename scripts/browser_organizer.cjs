@@ -63,6 +63,17 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("button", { name: "Coverage & shifts", exact: true })
       .click();
+    await page
+      .getByRole("button", { name: "Add new shift", exact: true })
+      .click();
+    await page
+      .getByRole("heading", { name: "Add new shift", exact: true })
+      .waitFor();
+    if (await page.locator("#shift-open").isChecked())
+      throw Error("New shifts should start with signups closed");
+    if (!(await page.locator("#shift-date").inputValue()))
+      throw Error("New shift date should be prefilled");
+    await page.locator("#dialog .close").click();
     await page.locator('[data-edit="0"]').click();
     await page.getByRole("button", { name: "Save shift", exact: true }).click();
     await page.locator("#dialog").waitFor({ state: "hidden", timeout: 30000 });
