@@ -1,0 +1,57 @@
+name: Bounded launch load check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tream-aws-development
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+      LOAD_TABLE_NAME: tream-load-${{ github.run_id }}-${{ github.run_attempt }}
+      LOAD_RESULT_FILE: /tmp/tream-load-results.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install inspection tooling
+        run: |
+          python3 -m venv /tmp/tream-load
+          /tmp/tream-load/bin/pip install 'boto3>=1.35,<2'
+      - name: Read-only production health baseline
+        run: /tmp/tream-load/bin/python scripts/operations_health.py
+      - name: Isolated DynamoDB booking and mock email checks
+        run: /tmp/tream-load/bin/python operations/load_check.py isolated
+      - name: Remove only this run's temporary test table
+        if: always()
+        run: |
+          if [ -x /tmp/tream-load/bin/python ]; then
+            /tmp/tream-load/bin/python operations/load_check.py cleanup
+          fi
+      - name: Bounded read-only production schedule ramp
+        run: /tmp/tream-load/bin/python operations/load_check.py production
+      - name: Read-only production health after checks
+        if: always()
+        run: |
+          if [ -x /tmp/tream-load/bin/python ]; then
+            /tmp/tream-load/bin/python scripts/operations_health.py
+          fi
+      - name: Show aggregate results
+        if: always()
+        run: |
+          if [ -f /tmp/tream-load-results.json ]; then
+            cat /tmp/tream-load-results.json
+            cat /tmp/tream-load-results.json >> "$GITHUB_STEP_SUMMARY"
+          fi
