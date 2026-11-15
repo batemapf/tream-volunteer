@@ -1,0 +1,26 @@
+name: Read-only organizer layout check
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  layout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SITE_URL: https://volunteer.brentholidaysale.com
+      PLAYWRIGHT_MODULE: /tmp/tream-browser/node_modules/playwright
+      PLAYWRIGHT_BROWSERS_PATH: /tmp/tream-playwright
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Install browser tooling
+        run: |
+          npm install --prefix /tmp/tream-browser --no-audit --no-fund playwright@1.56.1
+          /tmp/tream-browser/node_modules/.bin/playwright install chromium --only-shell
+          /tmp/tream-browser/node_modules/.bin/playwright install --with-deps webkit
+      - name: Test hosted organizer in Chromium and WebKit with synthetic data
+        run: node operations/browser_admin_layout.cjs
+      - name: Check volunteer layout remains intact
+        run: |
+          node scripts/browser_public_rules.cjs
+          node scripts/browser_mobile.cjs

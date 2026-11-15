@@ -73,10 +73,10 @@ const fixture = {
     await context.route("**/config.js", (r) =>
       r.fulfill({
         contentType: "application/javascript",
-        body: 'window.TREAM_CONFIG={apiBase:"https://layout.invalid",organizerClientId:"fixture"}',
+        body: 'window.TREAM_CONFIG={apiBase:"https://layout-fixture.execute-api.us-east-2.amazonaws.com",organizerClientId:"fixture"}',
       }),
     );
-    await context.route("https://layout.invalid/**", (r) =>
+    await context.route("https://layout-fixture.execute-api.us-east-2.amazonaws.com/**", (r) =>
       r.fulfill({
         headers: {
           "access-control-allow-origin": "*",
