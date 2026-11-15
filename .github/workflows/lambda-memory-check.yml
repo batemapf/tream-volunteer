@@ -1,0 +1,53 @@
+name: Isolated Lambda memory comparison
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tream-aws-development
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+      MEMORY_CHECK_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      MEMORY_RESULT_FILE: /tmp/tream-memory-results.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install tooling
+        run: |
+          python3 -m venv /tmp/tream-memory
+          /tmp/tream-memory/bin/pip install 'boto3>=1.35,<2'
+      - name: Compare fresh and warm execution environments
+        run: /tmp/tream-memory/bin/python operations/memory_check.py run
+      - name: Remove only temporary comparison resources
+        if: always()
+        run: |
+          if [ -x /tmp/tream-memory/bin/python ]; then
+            /tmp/tream-memory/bin/python operations/memory_check.py cleanup
+          fi
+      - name: Read-only production health after comparison
+        if: always()
+        run: |
+          if [ -x /tmp/tream-memory/bin/python ]; then
+            /tmp/tream-memory/bin/python scripts/operations_health.py
+          fi
+      - name: Show aggregate comparison
+        if: always()
+        run: |
+          if [ -f /tmp/tream-memory-results.json ]; then
+            cat /tmp/tream-memory-results.json
+            cat /tmp/tream-memory-results.json >> "$GITHUB_STEP_SUMMARY"
+          fi
