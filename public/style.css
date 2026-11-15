@@ -459,6 +459,11 @@ form select {
   grid-template-columns: 1fr 1fr;
   gap: 15px;
 }
+.signup-management-link {
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
 .primary {
   background: var(--green);
   border-color: var(--green);
