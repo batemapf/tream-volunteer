@@ -74,7 +74,13 @@ try:
     assert isinstance(call("GET", "/health")["emailEnabled"], bool)
     before = call("GET", "/schedule")
     assert before["shifts"], "Schedule not seeded"
-    valid = selection("8", start=9, end=11, subJobs=["cashier", "tree-prep"])
+    valid = selection(
+        "8",
+        start=9,
+        end=11,
+        subJobs=["cashier", "tree-prep"],
+        comment="Smoke private comment",
+    )
     mixed = book([selection("does-not-exist"), valid])
     assert [r["status"] for r in mixed["results"]] == ["failed", "booked"]
     booked = mixed["results"][1]
@@ -83,6 +89,7 @@ try:
         "Tree Prep (Chainsaw/Baling/Loading)",
     ], "Task choices not saved"
     private = store.get("BOOKING#" + booked["bookingId"])
+    assert private["comment"] == "Smoke private comment"
     assert [p["id"] for p in private["subJobPreferences"]] == ["cashier", "tree-prep"]
 
     assert (
@@ -91,6 +98,7 @@ try:
     serialized = json.dumps(call("GET", "/schedule"))
     for secret in [
         "Smoke PrivateName",
+        "Smoke private comment",
         "smoke@example.com",
         valid["manageToken"],
         "tokenHash",
@@ -121,6 +129,11 @@ try:
         **before["shifts"][0],
         "pk": "SHIFT#" + temporary_shift,
         "id": temporary_shift,
+        "date": "2026-12-02",
+        "start": 10,
+        "end": 15,
+        "flex": True,
+        "attendance": {"incrementMinutes": 30, "minMinutes": 30},
         "capacity": 1,
         "overflowPercent": 0,
         "revision": 0,
