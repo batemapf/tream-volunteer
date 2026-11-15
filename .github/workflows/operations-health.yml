@@ -27,3 +27,9 @@ jobs:
           /tmp/tream-health/bin/pip install 'boto3>=1.35,<2'
       - name: Inspect aggregate activity, delivery, logs and alarms
         run: /tmp/tream-health/bin/python scripts/operations_health.py
+      - name: Read live Lambda and API capacity
+        run: |
+          aws lambda get-account-settings --query '{Limits:AccountLimit,Usage:AccountUsage}' --output json
+          aws lambda get-function-concurrency --function-name tream-dev-api
+          aws lambda get-function-concurrency --function-name tream-dev-mail
+          aws apigatewayv2 get-stage --api-id saocxbe6xa --stage-name '$default' --query DefaultRouteSettings --output json
