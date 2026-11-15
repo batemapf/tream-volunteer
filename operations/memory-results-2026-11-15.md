@@ -17,3 +17,7 @@ Production remained at 256 MB and its code hash was verified unchanged. No produ
 Evidence: https://github.com/batemapf/tream-volunteer/actions/runs/43741058856
 
 Applying the recommendation is a separate targeted Terraform change to `aws_lambda_function.api.memory_size`; the restricted deployment guard must explicitly allow that API-only memory change. No mail/feedback memory, schedule migration or signup writes are needed.
+
+## Applied after owner approval
+
+The owner approved 1024 MB. Restricted deployment https://github.com/batemapf/tream-volunteer/actions/runs/43742155832 applied exactly one in-place resource change: API Lambda memory 256 → 1024 MB. Runtime code hash, environment, timeout, mail/feedback functions and all database resources stayed unchanged. Schedule migrations and production-mutating smoke tests were skipped; browser fixture checks passed. A subsequent live schedule GET returned HTTP 200 in 187 ms (a warm observation, not a new cold-start benchmark).
