@@ -130,3 +130,7 @@ Unloading on December 2 is now 4–6 p.m. The owner explicitly approved moving b
 ### Full shift presentation
 
 Removed the public Needs help only filter. All shifts stay visible for the selected day. Cards show Full (or Closed) with a View shift action when no signup is available; the details view keeps roster information and disables signup. Availability uses actual half-open attendance intervals, configured overflow capacity, and valid attendance windows rather than the raw signup total. Partial windows remain bookable where space exists, and the selected-window submit action is disabled when that window is full. Backend atomic capacity enforcement remains authoritative. Browser regression cases cover fully occupied shifts, partial space, fixed windows and overflow.
+
+### Actionable schedule-edit conflict messages
+
+Investigated a reported 1 p.m. start-time error without changing live hours. Current Lot setup & prep has an existing 10 a.m.–3 p.m. commitment, so shortening its window to 1–3 p.m. is correctly blocked; widening Tree unloading to 1–6 p.m. passes validation against its current 4–6 p.m. commitments. Awaiting clarification of which shift the report meant. Replaced the generic existing-commitment error with affected public labels and exact booked hours, plus instructions to change/cancel affected signups before saving. Existing hours remain protected; no automatic retiming was added. Deployment 43656081029 passed 53 unit checks and all live checks.
