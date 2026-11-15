@@ -1,0 +1,45 @@
+name: Clear test volunteer signups
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type CLEAR_TEST_SIGNUPS to delete volunteer test records while preserving schedules and organizer accounts
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: tream-aws-development
+  cancel-in-progress: false
+jobs:
+  reset:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-2
+      TABLE_NAME: tream-dev-data
+      RESET_STATE_FILE: ${{ runner.temp }}/tream-reset-concurrency.json
+      RESET_CONFIRMATION: ${{ inputs.confirmation }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN || secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-2
+          mask-aws-account-id: true
+      - name: Install tooling
+        run: |
+          python3 -m venv /tmp/tream-reset
+          /tmp/tream-reset/bin/pip install 'boto3>=1.35,<2'
+      - name: Clear test signup data and verify schedule preservation
+        run: /tmp/tream-reset/bin/python operations/clear_test_signups.py
+      - name: Ensure API and mail worker resume
+        if: always()
+        run: |
+          if [ -x /tmp/tream-reset/bin/python ]; then
+            /tmp/tream-reset/bin/python operations/clear_test_signups.py --restore
+          fi
