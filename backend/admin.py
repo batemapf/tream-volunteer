@@ -206,15 +206,29 @@ def edited_shift(old, payload):
             "existing_bookings",
             409,
         )
+    affected = []
+
+    def display_hour(value):
+        hours, minutes = divmod(round(value * 60), 60)
+        return f"{hours % 12 or 12}:{minutes:02d} {'am' if hours % 24 < 12 else 'pm'}"
+
     for person in old["roster"]:
         try:
             validate_interval(updated, person["start"], person["end"])
         except Problem:
-            raise Problem(
-                "This change would invalidate an existing commitment. Resolve it before editing the shift.",
-                "existing_bookings",
-                409,
-            ) from None
+            affected.append(
+                f"{person.get('publicName', 'Volunteer')} ({display_hour(person['start'])}–{display_hour(person['end'])})"
+            )
+    if affected:
+        details = "; ".join(affected[:3])
+        if len(affected) > 3:
+            details += f"; and {len(affected)-3} more"
+        raise Problem(
+            f"Cannot save: {len(affected)} existing {'signup no longer fits' if len(affected)==1 else 'signups no longer fit'} the new hours or attendance rules: {details}. "
+            "Change or cancel the affected signups first, then save the shift again. Existing volunteer hours have not been changed.",
+            "existing_bookings",
+            409,
+        )
     if any(s["count"] > s["limit"] for s in coverage(updated)):
         raise Problem(
             "This limit is below current attendance. Resolve the excess commitments first.",

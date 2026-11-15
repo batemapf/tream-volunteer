@@ -104,6 +104,20 @@ class AdminTests(unittest.TestCase):
         self.assertEqual(self.store.get("SHIFT#one")["capacity"], 1)
         self.assertEqual(len(self.store.get("SHIFT#one")["roster"]), 2)
 
+    def test_edit_identifies_affected_signup_and_keeps_existing_hours(self):
+        self.add(name="David Strich", shareName=True)
+        before = self.store.get("SHIFT#one")
+        with self.assertRaises(Problem) as error:
+            self.admin.update_shift("one", {"revision": 1, "start": 10})
+        self.assertEqual(error.exception.code, "existing_bookings")
+        self.assertIn("David S.", str(error.exception))
+        self.assertIn("9:00 am–11:00 am", str(error.exception))
+        self.assertIn("Change or cancel", str(error.exception))
+        self.assertEqual(self.store.get("SHIFT#one"), before)
+        # Extending the shift earlier accommodates the same commitment unchanged.
+        self.admin.update_shift("one", {"revision": 1, "start": 8})
+        self.assertEqual(self.store.get("SHIFT#one")["roster"], before["roster"])
+
     def test_edit_requires_revision_and_atomic_compare(self):
         with self.assertRaises(Problem):
             self.admin.update_shift("one", {"revision": 99, "capacity": 3})
