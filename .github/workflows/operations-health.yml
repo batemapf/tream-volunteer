@@ -34,3 +34,6 @@ jobs:
           aws lambda get-function-concurrency --function-name tream-dev-api
           aws lambda get-function-concurrency --function-name tream-dev-mail
           aws apigatewayv2 get-stage --api-id saocxbe6xa --stage-name '$default' --query DefaultRouteSettings --output json
+      - name: Read organizer session duration
+        run: |
+          aws cognito-idp describe-user-pool-client --user-pool-id us-east-2_ppF5IKYbw --client-id 1jb8sepg94ogf5e0e7almji16i --query 'UserPoolClient.{AccessValidity:AccessTokenValidity,IdValidity:IdTokenValidity,RefreshValidity:RefreshTokenValidity,Units:TokenValidityUnits}' --output json

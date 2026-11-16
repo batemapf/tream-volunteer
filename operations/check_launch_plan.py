@@ -8,6 +8,7 @@ allowed = {
     "aws_lambda_function.mail",
     "aws_lambda_function.feedback",
     "aws_apigatewayv2_stage.api",
+    "aws_cognito_user_pool_client.organizers",
 }
 plan = json.load(open(sys.argv[1]))
 changes = [
@@ -24,7 +25,24 @@ for resource in plan.get("resource_changes", []):
     ), f"Unexpected resource change: {resource['address']}"
     assert change["actions"] == ["update"], "Only in-place updates are allowed"
     before, after = change["before"], change["after"]
-    if resource["type"] == "aws_lambda_function":
+    if resource["type"] == "aws_cognito_user_pool_client":
+        assert resource["address"] == "aws_cognito_user_pool_client.organizers"
+        assert len(changes) == 1, "Session rollout must be the only resource change"
+        assert (
+            before["access_token_validity"] == 15
+            and after["access_token_validity"] == 720
+        )
+        assert before["id_token_validity"] == 15 and after["id_token_validity"] == 720
+        for key in set(before) | set(after):
+            if key not in (
+                "access_token_validity",
+                "id_token_validity",
+                "last_modified_date",
+            ):
+                assert before.get(key) == after.get(
+                    key
+                ), f"Unexpected auth change: {key}"
+    elif resource["type"] == "aws_lambda_function":
         for key in (
             "environment",
             "role",

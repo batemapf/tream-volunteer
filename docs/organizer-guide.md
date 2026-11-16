@@ -80,3 +80,7 @@ The static organizer page returns HTTP 200; unauthenticated organizer API access
 New volunteer signups now require a phone number. Phone numbers are shown only in the private organizer contact list/search and CSV export. Legacy signups may have a blank phone. Public names/rosters and confirmation emails do not expose phone numbers. Organizer message previews still save drafts; a Save draft action does not send a broadcast.
 
 Use **Add new shift** under Coverage & shifts to add a job window. New shifts default to signups closed; check **Accept new signups** when ready. Task choices are configured per shift.
+
+## Session duration
+
+New organizer sign-ins receive 12-hour access and ID tokens (720 minutes), extended from 15 minutes. Existing tokens retain their original expiry: sign out and back in once to receive the longer session. Credentials remain in sessionStorage for the browser tab; this change does not add persistence across devices or store passwords. Refresh-token validity remains one day; automatic refresh is not implemented.
