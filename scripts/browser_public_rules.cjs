@@ -58,6 +58,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     await page
       .getByRole("heading", { name: "<b>Setup & help</b>", exact: true })
       .waitFor();
+    const date = page.locator("#modal .signup-date time");
+    if (
+      (await date.getAttribute("datetime")) !== "2026-12-01" ||
+      !(await date.innerText()).includes("Tuesday, Dec 1")
+    )
+      throw Error("Signup date is missing or incorrect");
     if (await page.locator("#modal h2 b").count())
       throw Error("Job name interpreted as markup");
     if (
@@ -70,7 +76,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright");
     )
       throw Error("Departure choice ignored policy or minute formatting");
     if (
-      !(await page.locator("#modal .eyebrow").innerText()).includes(
+      !(await page.locator("#modal .signup-location").innerText()).includes(
         "Gate <east>",
       )
     )

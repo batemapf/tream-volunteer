@@ -111,7 +111,7 @@ jobs:
           Path('public/config.js').write_text('window.TREAM_CONFIG = '+json.dumps({'apiBase':os.environ['API_URL'],'organizerPoolId':os.environ['ORGANIZER_POOL_ID'],'organizerClientId':os.environ['ORGANIZER_CLIENT_ID'],'region':'us-east-2'})+';\n')
           PY
           if [ "$LAUNCH_SAFE" = "true" ]; then
-            for file in request.js app.js manage.js organizer.js organizer.css index.html manage.html organizer.html; do
+            for file in request.js app.js manage.js organizer.js organizer.css style.css index.html manage.html organizer.html; do
               aws s3 cp "public/$file" "s3://${web_bucket}/$file" --cache-control 'max-age=60'
             done
           else
