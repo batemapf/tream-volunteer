@@ -13,6 +13,8 @@ import boto3
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from store import DynamoStore
 
+log_hours = int(os.environ.get("HEALTH_LOG_HOURS", "24"))
+assert 1 <= log_hours <= 48
 now = int(time.time())
 since = now - 86400
 store = DynamoStore()
@@ -131,7 +133,11 @@ for function in ("api", "mail", "feedback"):
     cursor = None
     seen = set()
     while True:
-        args = {"logGroupName": group, "startTime": (now - 7200) * 1000, "limit": 10000}
+        args = {
+            "logGroupName": group,
+            "startTime": (now - log_hours * 3600) * 1000,
+            "limit": 10000,
+        }
         if cursor:
             args["nextToken"] = cursor
         page = logs.filter_log_events(**args)
@@ -164,14 +170,19 @@ for function in ("api", "mail", "feedback"):
         cursor = new_cursor
     print(
         json.dumps(
-            {"function": function, "last2hLogEvents": len(seen), "errors": dict(errors)}
+            {
+                "function": function,
+                "lookbackHours": log_hours,
+                "logEvents": len(seen),
+                "errors": dict(errors),
+            }
         )
     )
 
 cw = boto3.client("cloudwatch")
-start = datetime.now(timezone.utc) - timedelta(hours=2)
+start = datetime.now(timezone.utc) - timedelta(hours=log_hours)
 for function in ("api", "mail", "feedback"):
-    output = {"function": function, "metricsLast2h": {}}
+    output = {"function": function, "lookbackHours": log_hours, "metrics": {}}
     for metric in ("Invocations", "Errors", "Throttles"):
         result = cw.get_metric_statistics(
             Namespace="AWS/Lambda",
@@ -182,8 +193,24 @@ for function in ("api", "mail", "feedback"):
             Period=300,
             Statistics=["Sum"],
         )
-        output["metricsLast2h"][metric] = sum(p["Sum"] for p in result["Datapoints"])
+        output["metrics"][metric] = sum(p["Sum"] for p in result["Datapoints"])
     print(json.dumps(output))
+api_metrics = {"lookbackHours": log_hours}
+for metric in ("Count", "4xx", "5xx"):
+    result = cw.get_metric_statistics(
+        Namespace="AWS/ApiGateway",
+        MetricName=metric,
+        Dimensions=[
+            {"Name": "ApiId", "Value": "saocxbe6xa"},
+            {"Name": "Stage", "Value": "$default"},
+        ],
+        StartTime=start,
+        EndTime=datetime.now(timezone.utc),
+        Period=300,
+        Statistics=["Sum"],
+    )
+    api_metrics[metric] = sum(p["Sum"] for p in result["Datapoints"])
+print(json.dumps({"apiGateway": api_metrics}))
 print(
     json.dumps(
         {
