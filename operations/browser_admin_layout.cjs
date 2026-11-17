@@ -55,6 +55,16 @@ const fixture = {
   ],
   emailEnabled: false,
 };
+fixture.shifts.push({ ...fixture.shifts[0], id: "1", name: "Tree unloading" });
+fixture.bookings.push({
+  ...fixture.bookings[0],
+  id: "booking2",
+  shiftId: "1",
+  start: 10,
+  end: 12,
+});
+fixture.conflicts[0].bookingIds.push("booking2");
+fixture.conflicts[0].kind = "same_person";
 (async () => {
   for (const [name, engine] of process.env.LAYOUT_CHROMIUM_ONLY
     ? [["chromium", chromium]]
@@ -122,6 +132,40 @@ const fixture = {
       for (const tab of ["coverage", "volunteers", "conflicts", "messages"]) {
         await page.locator(`[data-view="${tab}"]`).click();
         await fits(`${width}px ${tab}`);
+        if (tab === "conflicts") {
+          const entries = page.locator(".a-conflict-booking");
+          if ((await entries.count()) !== 2)
+            throw Error(
+              "Each overlapping commitment needs its own action group",
+            );
+          for (let i = 0; i < 2; i++) {
+            const entry = entries.nth(i),
+              booking = fixture.bookings[i],
+              shift = fixture.shifts[i];
+            await entry.locator("button[data-cancel]").click();
+            const summary = await page.locator("#dialog .summary").innerText();
+            if (
+              !summary.includes(shift.name) ||
+              !summary.includes(booking.name)
+            )
+              throw Error("Cancellation dialog targets the wrong shift");
+            if (
+              (await entry
+                .locator("button[data-cancel]")
+                .getAttribute("data-cancel")) !== booking.id
+            )
+              throw Error("Wrong booking action binding");
+            await page.locator("#dialog .close").click();
+          }
+          if (
+            await page
+              .locator(".a-conflict > .a-action-row [data-cancel]")
+              .count()
+          )
+            throw Error(
+              "Cancellation buttons must remain inside their commitment",
+            );
+        }
         if (tab === "volunteers") {
           const wrapper = page.locator(".a-table-wrap");
           const scrollable = await wrapper.evaluate(

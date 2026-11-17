@@ -447,11 +447,11 @@
             `<article class="a-card a-conflict"><div class="a-card-header"><div><h2>${c.kind === "same_person" ? "Possible same-person overlap" : "Shared-email overlap"}</h2><span class="sub">${esc(c.email)}</span></div>${c.reviewed ? '<span class="a-reviewed">Reviewed</span>' : ""}</div>${c.bookingIds
               .map((id) => {
                 const b = byId.get(id);
-                return `<p><strong>${esc(b.name)}</strong> · ${esc(job(b.shiftId).name)}<br><span class="sub">${esc(dateLabel(job(b.shiftId).date))} · ${fmt(b.start)}–${fmt(b.end)}</span></p>`;
+                return `<section class="a-conflict-booking"><div><strong>${esc(b.name)}</strong><p class="a-conflict-shift">${esc(job(b.shiftId).name)}</p><p class="sub">${esc(dateLabel(job(b.shiftId).date))} · ${fmt(b.start)}–${fmt(b.end)}</p></div><button data-cancel="${id}" class="danger" aria-label="${esc(`Cancel ${b.name}’s ${job(b.shiftId).name} signup, ${dateLabel(job(b.shiftId).date)}, ${fmt(b.start)}–${fmt(b.end)}`)}">Cancel this signup</button></section>`;
               })
               .join(
                 "",
-              )}${c.note ? `<p class="a-note">${esc(c.note)}</p>` : ""}<div class="a-action-row"><button data-review="${c.id}">${c.reviewed ? "Update review" : "Mark reviewed"}</button>${c.bookingIds.map((id) => `<button data-cancel="${id}" class="danger">Cancel ${esc(byId.get(id).name)}’s booking</button>`).join("")}</div></article>`,
+              )}${c.note ? `<p class="a-note">${esc(c.note)}</p>` : ""}<div class="a-action-row"><button data-review="${c.id}">${c.reviewed ? "Update review" : "Mark reviewed"}</button></div></article>`,
         )
         .join("") || '<div class="a-empty">No overlaps need review.</div>');
     $("#show-reviewed").onchange = (e) => {

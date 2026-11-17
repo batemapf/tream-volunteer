@@ -463,3 +463,43 @@ button.danger {
     font-size: 16px;
   }
 }
+
+/* Keep destructive overlap actions attached to the exact commitment. */
+.a-conflict-booking {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fafbf8;
+}
+.a-conflict-booking > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.a-conflict-booking .a-conflict-shift {
+  font-weight: 600;
+  margin: 7px 0;
+}
+.a-conflict-booking .sub {
+  margin: 0;
+}
+.a-conflict-booking > button {
+  flex: none;
+  max-width: 100%;
+  min-height: 44px;
+}
+@media (max-width: 600px) {
+  .a-conflict-booking {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .a-conflict-booking > div {
+    flex: none;
+    width: 100%;
+  }
+}
